@@ -10,6 +10,7 @@ import com.alexbaryzhikov.bakingtime.ui.BrowseFragment;
 import com.alexbaryzhikov.bakingtime.ui.MainActivity;
 import com.alexbaryzhikov.bakingtime.ui.RecipeAdapter;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
+import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModelFactory;
 
 import dagger.Module;
 import dagger.Provides;
@@ -31,8 +32,8 @@ public class BrowseFragmentModule {
 
   @Provides
   @BrowseFragmentScope
-  RecipeViewModel provideRecipeVeiwModel(MainActivity mainActivity) {
-    return ViewModelProviders.of(mainActivity).get(RecipeViewModel.class);
+  RecipeViewModel provideRecipeVeiwModel(MainActivity mainActivity, RecipeViewModelFactory factory) {
+    return ViewModelProviders.of(mainActivity, factory).get(RecipeViewModel.class);
   }
 
   @Provides

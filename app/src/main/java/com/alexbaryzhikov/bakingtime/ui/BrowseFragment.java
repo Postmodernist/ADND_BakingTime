@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.alexbaryzhikov.bakingtime.BakingApp;
 import com.alexbaryzhikov.bakingtime.R;
 import com.alexbaryzhikov.bakingtime.di.components.DaggerBrowseFragmentComponent;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
@@ -67,7 +68,9 @@ public class BrowseFragment extends Fragment {
   }
 
   private void setupDagger() {
+    assert getContext() != null;
     DaggerBrowseFragmentComponent.builder()
+        .appComponent(BakingApp.getAppComponent(getContext()))
         .fragment(this)
         .build()
         .inject(this);
@@ -76,6 +79,6 @@ public class BrowseFragment extends Fragment {
   private void setupRecipesList() {
     recipeList.setLayoutManager(layoutManager);
     recipeList.setAdapter(adapter);
-    disposable = adapter.subscribeTo(viewModel.getRecipeData());
+    disposable = adapter.subscribeTo(viewModel.getRecipes());
   }
 }
