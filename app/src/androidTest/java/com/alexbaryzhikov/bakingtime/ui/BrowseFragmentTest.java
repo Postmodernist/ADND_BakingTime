@@ -1,6 +1,7 @@
 package com.alexbaryzhikov.bakingtime.ui;
 
 import android.support.test.espresso.IdlingRegistry;
+import android.support.test.espresso.IdlingResource;
 import android.support.test.filters.LargeTest;
 import android.support.test.rule.ActivityTestRule;
 import android.support.test.runner.AndroidJUnit4;
@@ -9,6 +10,7 @@ import com.alexbaryzhikov.bakingtime.BakingApp;
 import com.alexbaryzhikov.bakingtime.R;
 import com.alexbaryzhikov.bakingtime.di.components.ApplicationComponent;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -27,6 +29,7 @@ import static android.support.test.espresso.matcher.ViewMatchers.withText;
 public class BrowseFragmentTest {
 
   private static final String RECIPE_NAME = "Brownies";
+  private IdlingResource idlingResource;
 
   @Rule
   public ActivityTestRule<MainActivity> activityTestRule =
@@ -35,7 +38,15 @@ public class BrowseFragmentTest {
   @Before
   public void registerIdlingResource() {
     ApplicationComponent appComponent = BakingApp.getAppComponent(activityTestRule.getActivity());
-    IdlingRegistry.getInstance().register(appComponent.idlingResource());
+    idlingResource = appComponent.idlingResource();
+    IdlingRegistry.getInstance().register(idlingResource);
+  }
+
+  @After
+  public void unregisterIdlingResource() {
+    if (idlingResource != null) {
+      IdlingRegistry.getInstance().unregister(idlingResource);
+    }
   }
 
   @Test

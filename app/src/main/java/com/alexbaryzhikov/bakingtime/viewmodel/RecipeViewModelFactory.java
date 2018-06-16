@@ -3,7 +3,6 @@ package com.alexbaryzhikov.bakingtime.viewmodel;
 import android.arch.lifecycle.ViewModel;
 import android.arch.lifecycle.ViewModelProvider;
 import android.support.annotation.NonNull;
-import android.support.test.espresso.IdlingResource;
 
 import com.alexbaryzhikov.bakingtime.repositiory.Repository;
 import com.alexbaryzhikov.bakingtime.utils.SimpleIdlingResource;

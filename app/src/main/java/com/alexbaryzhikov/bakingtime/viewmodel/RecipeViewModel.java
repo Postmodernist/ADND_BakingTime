@@ -1,7 +1,6 @@
 package com.alexbaryzhikov.bakingtime.viewmodel;
 
 import android.arch.lifecycle.ViewModel;
-import android.support.test.espresso.IdlingResource;
 
 import com.alexbaryzhikov.bakingtime.datamodel.RecipeItem;
 import com.alexbaryzhikov.bakingtime.repositiory.Repository;
@@ -24,7 +23,10 @@ public class RecipeViewModel extends ViewModel {
   }
 
   public Observable<List<RecipeItem>> getRecipes() {
-    return repository.getRecipes()
+    return Observable.just(new Object())
+        .doOnNext(o -> idlingResource.setIdleState(false))
+        .flatMap(o -> repository.getRecipes())
+        .doAfterNext(recipeItems -> idlingResource.setIdleState(true))
         .subscribeOn(Schedulers.io())
         .observeOn(AndroidSchedulers.mainThread());
   }
