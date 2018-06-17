@@ -13,13 +13,11 @@ import javax.inject.Singleton;
 @Singleton
 public class RecipeViewModelFactory extends ViewModelProvider.NewInstanceFactory {
 
-  private final Repository repository;
-  private final SimpleIdlingResource idlingResource;
+  @Inject Repository repository;
+  @Inject SimpleIdlingResource idlingResource;
 
   @Inject
-  RecipeViewModelFactory(Repository repository, SimpleIdlingResource idlingResource) {
-    this.repository = repository;
-    this.idlingResource = idlingResource;
+  RecipeViewModelFactory() {
   }
 
   @NonNull

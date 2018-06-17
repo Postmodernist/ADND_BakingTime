@@ -10,12 +10,13 @@ import android.support.v7.widget.RecyclerView.LayoutManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 
 import com.alexbaryzhikov.bakingtime.BakingApp;
 import com.alexbaryzhikov.bakingtime.R;
 import com.alexbaryzhikov.bakingtime.di.components.DaggerBrowseFragmentComponent;
+import com.alexbaryzhikov.bakingtime.utils.Resource;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
 
 import javax.inject.Inject;
@@ -28,8 +29,9 @@ import io.reactivex.disposables.Disposable;
 public class BrowseFragment extends Fragment {
 
   @BindView(R.id.recipe_list) RecyclerView recipeList;
-  @BindView(R.id.error_message) TextView errorMessage;
   @BindView(R.id.loading_indicator) ProgressBar loadingIndicator;
+  @BindView(R.id.error_viewgroup) ViewGroup errorViewGroup;
+  @BindView(R.id.refresh_button) Button refreshButton;
 
   @Inject LayoutManager layoutManager;
   @Inject RecipeAdapter adapter;
@@ -57,7 +59,9 @@ public class BrowseFragment extends Fragment {
                            Bundle savedInstanceState) {
     View view = inflater.inflate(R.layout.fragment_browse, container, false);
     ButterKnife.bind(this, view);
+    viewModel.init();
     setupRecipesList();
+    refreshButton.setOnClickListener(v -> viewModel.loadRecipes());
     return view;
   }
 
@@ -79,6 +83,27 @@ public class BrowseFragment extends Fragment {
   private void setupRecipesList() {
     recipeList.setLayoutManager(layoutManager);
     recipeList.setAdapter(adapter);
-    disposable = adapter.subscribeTo(viewModel.getRecipes());
+    disposable = adapter.subscribeTo(viewModel.getRecipes()
+        .doOnNext(listResource -> renderStatus(listResource.getStatus()))
+        .map(Resource::getData));
+  }
+
+  private void renderStatus(Resource.Status status) {
+    switch (status) {
+      case LOADING:
+        loadingIndicator.setVisibility(View.VISIBLE);
+        errorViewGroup.setVisibility(View.INVISIBLE);
+        break;
+      case SUCCESS:
+        loadingIndicator.setVisibility(View.INVISIBLE);
+        errorViewGroup.setVisibility(View.INVISIBLE);
+        break;
+      case ERROR:
+        loadingIndicator.setVisibility(View.INVISIBLE);
+        errorViewGroup.setVisibility(View.VISIBLE);
+        break;
+      default:
+        throw new IllegalArgumentException("Unknown status: " + status.name());
+    }
   }
 }

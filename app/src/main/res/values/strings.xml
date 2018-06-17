@@ -2,4 +2,5 @@
     <string name="app_name">Baking Time</string>
 
     <string name="browse_error_message">No recipes to show.\nCheck connection and click REFRESH to try again</string>
+    <string name="refresh_button_text">Refresh</string>
 </resources>
