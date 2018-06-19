@@ -3,4 +3,5 @@
 
     <string name="browse_error_message">Oops, something went wrong…\nClick REFRESH to try again</string>
     <string name="refresh_button_text">Refresh</string>
+    <string name="ingredient">\u2022 %s %s\n</string>
 </resources>

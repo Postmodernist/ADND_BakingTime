@@ -15,9 +15,13 @@ import android.widget.ProgressBar;
 
 import com.alexbaryzhikov.bakingtime.BakingApp;
 import com.alexbaryzhikov.bakingtime.R;
+import com.alexbaryzhikov.bakingtime.datamodel.response.Ingredient;
+import com.alexbaryzhikov.bakingtime.datamodel.view.RecipeItem;
 import com.alexbaryzhikov.bakingtime.di.components.DaggerBrowseFragmentComponent;
 import com.alexbaryzhikov.bakingtime.utils.Resource;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
+
+import java.util.List;
 
 import javax.inject.Inject;
 
@@ -85,7 +89,7 @@ public class BrowseFragment extends Fragment {
     recipeList.setAdapter(adapter);
     disposable = adapter.subscribeTo(viewModel.getRecipes()
         .doOnNext(listResource -> renderStatus(listResource.getStatus()))
-        .map(Resource::getData));
+        .map(this::buildIngredientsString));
   }
 
   private void renderStatus(Resource.Status status) {
@@ -104,6 +108,37 @@ public class BrowseFragment extends Fragment {
         break;
       default:
         throw new IllegalArgumentException("Unknown status: " + status.name());
+    }
+  }
+
+  private List<RecipeItem> buildIngredientsString(Resource<List<RecipeItem>> listResource) {
+    List<RecipeItem> recipes = listResource.getData();
+    assert recipes != null;
+    for (RecipeItem recipe : recipes) {
+      StringBuilder sb = new StringBuilder();
+      for (Ingredient ingredient : recipe.getIngredients()) {
+        sb.append(getString(R.string.ingredient, smartValueOf(ingredient.quantity, ingredient.measure), ingredient.ingredient));
+      }
+      recipe.setIngredientsStr(sb.substring(0, sb.length() - 1));
+    }
+    return recipes;
+  }
+
+  private String smartValueOf(Double d, String measure) {
+    String quantity = d % 1 == 0 ? String.valueOf(d.intValue()) : String.valueOf(d);
+    return quantity + humanReadableMeasure(measure, d.compareTo(1.0) == 0);
+  }
+
+  private String humanReadableMeasure(String measure, boolean single) {
+    switch (measure) {
+      case "CUP": return single ? " cup of" : " cups of";
+      case "TBLSP": return " tbs. of";
+      case "TSP": return " tsp. of";
+      case "G": return " g of";
+      case "K": return " kg of";
+      case "OZ": return " oz of";
+      case "UNIT": return "";
+      default: return " " + measure + " of";
     }
   }
 }

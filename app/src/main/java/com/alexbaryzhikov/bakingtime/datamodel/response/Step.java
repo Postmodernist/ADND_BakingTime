@@ -1,4 +1,4 @@
-package com.alexbaryzhikov.bakingtime.datamodel;
+package com.alexbaryzhikov.bakingtime.datamodel.response;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;

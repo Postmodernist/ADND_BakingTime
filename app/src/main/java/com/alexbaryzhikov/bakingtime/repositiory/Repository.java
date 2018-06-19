@@ -1,7 +1,7 @@
 package com.alexbaryzhikov.bakingtime.repositiory;
 
 import com.alexbaryzhikov.bakingtime.api.RecipeApi;
-import com.alexbaryzhikov.bakingtime.datamodel.Recipe;
+import com.alexbaryzhikov.bakingtime.datamodel.response.Recipe;
 
 import java.util.List;
 
@@ -9,7 +9,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import io.reactivex.Observable;
-import retrofit2.Response;
+import retrofit2.adapter.rxjava2.Result;
 
 @Singleton
 public class Repository {
@@ -22,7 +22,7 @@ public class Repository {
   Repository() {
   }
 
-  public Observable<Response<List<Recipe>>> getRecipes() {
-    return Observable.fromCallable(recipeApi.getRecipes()::execute);
+  public Observable<Result<List<Recipe>>> getRecipes() {
+    return recipeApi.getRecipes();
   }
 }

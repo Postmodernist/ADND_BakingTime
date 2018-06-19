@@ -8,7 +8,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.alexbaryzhikov.bakingtime.R;
-import com.alexbaryzhikov.bakingtime.datamodel.RecipeItem;
+import com.alexbaryzhikov.bakingtime.datamodel.view.RecipeItem;
 
 import java.util.List;
 
@@ -16,7 +16,6 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.Action;
 
 public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeViewHolder> {
 
@@ -33,6 +32,7 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
   @Override
   public void onBindViewHolder(@NonNull RecipeViewHolder holder, int position) {
     holder.recipeTitle.setText(recipeData.get(position).getTitle());
+    holder.recipeIngredients.setText(recipeData.get(position).getIngredientsStr());
   }
 
   @Override
@@ -56,6 +56,7 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
   class RecipeViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
     @BindView(R.id.recipe_title) TextView recipeTitle;
+    @BindView(R.id.recipe_ingredients) TextView recipeIngredients;
 
     RecipeViewHolder(View itemView) {
       super(itemView);
