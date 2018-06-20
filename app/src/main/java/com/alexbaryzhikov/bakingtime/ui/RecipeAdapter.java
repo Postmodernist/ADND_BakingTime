@@ -9,17 +9,26 @@ import android.widget.TextView;
 
 import com.alexbaryzhikov.bakingtime.R;
 import com.alexbaryzhikov.bakingtime.datamodel.view.RecipeItem;
+import com.alexbaryzhikov.bakingtime.di.scopes.BrowseFragmentScope;
 
 import java.util.List;
+
+import javax.inject.Inject;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 
+@BrowseFragmentScope
 public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeViewHolder> {
 
+  @Inject RecipeClickCallback clickCallback;
   private List<RecipeItem> recipeData;
+
+  @Inject
+  public RecipeAdapter() {
+  }
 
   @NonNull
   @Override
@@ -31,7 +40,7 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
 
   @Override
   public void onBindViewHolder(@NonNull RecipeViewHolder holder, int position) {
-    holder.recipeTitle.setText(recipeData.get(position).getTitle());
+    holder.recipeTitle.setText(recipeData.get(position).getName());
     holder.recipeIngredients.setText(recipeData.get(position).getIngredientsStr());
   }
 
@@ -53,6 +62,10 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
     notifyDataSetChanged();
   }
 
+  public interface RecipeClickCallback {
+    void onClick(int position);
+  }
+
   class RecipeViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
     @BindView(R.id.recipe_title) TextView recipeTitle;
@@ -66,7 +79,9 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
 
     @Override
     public void onClick(View v) {
-      // TODO Card onClick callback
+      if (clickCallback != null) {
+        clickCallback.onClick(getAdapterPosition());
+      }
     }
   }
 }

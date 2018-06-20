@@ -1,5 +1,7 @@
 package com.alexbaryzhikov.bakingtime.di.components;
 
+import android.support.v7.widget.RecyclerView.LayoutManager;
+
 import com.alexbaryzhikov.bakingtime.di.modules.BrowseFragmentModule;
 import com.alexbaryzhikov.bakingtime.di.scopes.BrowseFragmentScope;
 import com.alexbaryzhikov.bakingtime.ui.BrowseFragment;
@@ -12,6 +14,8 @@ import dagger.Component;
 public interface BrowseFragmentComponent {
 
   void inject(BrowseFragment fragment);
+
+  LayoutManager layoutManager();
 
   @Component.Builder
   interface Builder {

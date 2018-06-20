@@ -13,7 +13,7 @@ public class MainActivity extends AppCompatActivity {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
 
-    // Add recipes list fragment if this is a first creation
+    // Add browse fragment if this is a first creation
     if (savedInstanceState == null) {
       BrowseFragment fragment = new BrowseFragment();
       getSupportFragmentManager().beginTransaction()
@@ -40,8 +40,8 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
-  public void showRecipeDetails(int recipeId, int position) {
-    DetailFragment fragment = DetailFragment.forRecipe(recipeId, position);
+  public void showRecipeDetails(int position) {
+    DetailFragment fragment = DetailFragment.forRecipe(position);
     getSupportFragmentManager().beginTransaction()
         .addToBackStack("recipe")
         .replace(R.id.fragment_container, fragment)

@@ -30,6 +30,7 @@ public class RecipeViewModel extends ViewModel {
   private final SimpleIdlingResource idlingResource;
   private final BehaviorSubject<Object> requestSubject = BehaviorSubject.create();
   private boolean initialized = false;
+  private List<Recipe> recipes;
 
   RecipeViewModel(Repository repository, SimpleIdlingResource idlingResource) {
     this.repository = repository;
@@ -44,18 +45,34 @@ public class RecipeViewModel extends ViewModel {
     loadRecipes();
   }
 
+  /** Get recipes observable */
   public Observable<Resource<List<RecipeItem>>> getRecipes() {
     return requestSubject
         .flatMap(ignored -> repository.getRecipes()
+            .doOnNext(this::cacheResipes)
             .map(this::toResource)
             .startWith(Resource.loading(Collections.emptyList())))
-        .doOnNext(listResource -> idlingResource.setIdleState(
-            listResource.getStatus() != Resource.Status.LOADING))
+        .doOnNext(listResource -> idlingResource.setIdleState(listResource.getStatus() != Resource.Status.LOADING))
         .observeOn(AndroidSchedulers.mainThread());
   }
 
+  /** Trigger recipes observable to load recipes */
   public void loadRecipes() {
     requestSubject.onNext(new Object());
+  }
+
+  public Recipe getRecipe(int position) {
+    return recipes.get(position);
+  }
+
+  private void cacheResipes(Result<List<Recipe>> listResult) {
+    if (listResult.isError()) {
+      return;
+    }
+    Response<List<Recipe>> response = listResult.response();
+    if (response != null) {
+      recipes = response.body();
+    }
   }
 
   private Resource<List<RecipeItem>> toResource(@NonNull Result<List<Recipe>> result) {
@@ -87,7 +104,7 @@ public class RecipeViewModel extends ViewModel {
     // Transform response items into RecipeItem list and return it
     List<RecipeItem> recipeItemList = new ArrayList<>(recipeList.size());
     for (Recipe recipe : recipeList) {
-      recipeItemList.add(new RecipeItem(recipe.name, recipe.ingredients));
+      recipeItemList.add(new RecipeItem(recipe.id, recipe.name, recipe.ingredients));
     }
     return Resource.success(recipeItemList);
   }
