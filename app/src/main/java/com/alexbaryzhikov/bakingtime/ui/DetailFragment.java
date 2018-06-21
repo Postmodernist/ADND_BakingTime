@@ -1,20 +1,22 @@
 package com.alexbaryzhikov.bakingtime.ui;
 
-
 import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
+import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.RecyclerView.LayoutManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
 
 import com.alexbaryzhikov.bakingtime.BakingApp;
 import com.alexbaryzhikov.bakingtime.R;
 import com.alexbaryzhikov.bakingtime.datamodel.response.Ingredient;
 import com.alexbaryzhikov.bakingtime.datamodel.response.Recipe;
 import com.alexbaryzhikov.bakingtime.di.components.DaggerDetailFragmentComponent;
+import com.alexbaryzhikov.bakingtime.di.components.DetailFragmentComponent;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
 
 import java.util.List;
@@ -26,17 +28,18 @@ import butterknife.ButterKnife;
 
 import static com.alexbaryzhikov.bakingtime.utils.RecipeUtils.smartValueOf;
 
-/**
- * A simple {@link Fragment} subclass.
- */
+/** Cooking steps */
 public class DetailFragment extends Fragment {
 
   private static final String KEY_POSITION = "position";
 
-  @BindView(R.id.recipe_ingredients) TextView recipeIngredients;
+  @BindView(R.id.cooking_steps) RecyclerView cookingSteps;
 
   @Inject RecipeViewModel viewModel;
   @Inject MainActivity mainActivity;
+  @Inject StepsAdapter adapter;
+
+  private DetailFragmentComponent detailFragmentComponent;
 
   public DetailFragment() {
     // Required empty public constructor
@@ -67,11 +70,11 @@ public class DetailFragment extends Fragment {
 
   private void setupDagger() {
     assert getContext() != null;
-    DaggerDetailFragmentComponent.builder()
+    detailFragmentComponent = DaggerDetailFragmentComponent.builder()
         .appComponent(BakingApp.getAppComponent(getContext()))
         .fragment(this)
-        .build()
-        .inject(this);
+        .build();
+    detailFragmentComponent.inject(this);
   }
 
   private void setupFragment() {
@@ -84,8 +87,15 @@ public class DetailFragment extends Fragment {
       Recipe recipe = viewModel.getRecipe(position);
       // Set activity title
       mainActivity.setTitle(recipe.name);
-      // Set ingredients list
-      recipeIngredients.setText(buildIngredientsString(recipe.ingredients));
+      // Setup cooking steps list
+      LayoutManager layoutManager = detailFragmentComponent.layoutManager();
+      DividerItemDecoration divider =
+          new DividerItemDecoration(cookingSteps.getContext(), DividerItemDecoration.VERTICAL);
+      cookingSteps.setLayoutManager(layoutManager);
+      cookingSteps.addItemDecoration(divider);
+      cookingSteps.setAdapter(adapter);
+      adapter.setIngredients(buildIngredientsString(recipe.ingredients));
+      adapter.setSteps(recipe.steps);
     }
   }
 

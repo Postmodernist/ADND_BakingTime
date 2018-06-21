@@ -5,10 +5,9 @@
     android:layout_height="match_parent"
     tools:context=".ui.DetailFragment">
 
-    <TextView
-        android:id="@+id/recipe_ingredients"
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/cooking_steps"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="@dimen/app_margin" />
+        android:layout_height="match_parent" />
 
 </FrameLayout>

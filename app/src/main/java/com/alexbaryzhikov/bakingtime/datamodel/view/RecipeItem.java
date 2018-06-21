@@ -6,19 +6,13 @@ import java.util.List;
 
 public class RecipeItem {
 
-  private final int id;
   private final String name;
   private final List<Ingredient> ingredients;
   private String ingredientsStr;
 
-  public RecipeItem(int id, String name, List<Ingredient> ingredients) {
-    this.id = id;
+  public RecipeItem(String name, List<Ingredient> ingredients) {
     this.name = name;
     this.ingredients = ingredients;
-  }
-
-  public int getId() {
-    return id;
   }
 
   public String getName() {

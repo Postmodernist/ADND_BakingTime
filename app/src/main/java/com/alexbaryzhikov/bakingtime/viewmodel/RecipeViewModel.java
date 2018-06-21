@@ -49,7 +49,7 @@ public class RecipeViewModel extends ViewModel {
   public Observable<Resource<List<RecipeItem>>> getRecipes() {
     return requestSubject
         .flatMap(ignored -> repository.getRecipes()
-            .doOnNext(this::cacheResipes)
+            .doOnNext(this::cacheRecipes)
             .map(this::toResource)
             .startWith(Resource.loading(Collections.emptyList())))
         .doOnNext(listResource -> idlingResource.setIdleState(listResource.getStatus() != Resource.Status.LOADING))
@@ -65,7 +65,7 @@ public class RecipeViewModel extends ViewModel {
     return recipes.get(position);
   }
 
-  private void cacheResipes(Result<List<Recipe>> listResult) {
+  private void cacheRecipes(Result<List<Recipe>> listResult) {
     if (listResult.isError()) {
       return;
     }
@@ -104,7 +104,7 @@ public class RecipeViewModel extends ViewModel {
     // Transform response items into RecipeItem list and return it
     List<RecipeItem> recipeItemList = new ArrayList<>(recipeList.size());
     for (Recipe recipe : recipeList) {
-      recipeItemList.add(new RecipeItem(recipe.id, recipe.name, recipe.ingredients));
+      recipeItemList.add(new RecipeItem(recipe.name, recipe.ingredients));
     }
     return Resource.success(recipeItemList);
   }

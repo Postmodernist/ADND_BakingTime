@@ -1,5 +1,7 @@
 package com.alexbaryzhikov.bakingtime.di.components;
 
+import android.support.v7.widget.RecyclerView.LayoutManager;
+
 import com.alexbaryzhikov.bakingtime.di.modules.DetailFragmentModule;
 import com.alexbaryzhikov.bakingtime.di.scopes.DetailFragmentScope;
 import com.alexbaryzhikov.bakingtime.ui.DetailFragment;
@@ -12,6 +14,8 @@ import dagger.Component;
 public interface DetailFragmentComponent {
 
   void inject(DetailFragment fragment);
+
+  LayoutManager layoutManager();
 
   @Component.Builder
   interface Builder {
