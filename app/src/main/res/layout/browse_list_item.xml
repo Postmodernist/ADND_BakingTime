@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <android.support.v7.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginEnd="@dimen/app_spacing"
     android:layout_marginStart="@dimen/app_spacing"
-    android:layout_marginTop="@dimen/app_spacing"
-    android:minHeight="100dp">
+    android:layout_marginTop="@dimen/app_spacing">
 
-    <LinearLayout
+    <android.support.constraint.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
+        android:animateLayoutChanges="true"
         android:padding="@dimen/app_margin">
 
         <TextView
@@ -19,7 +19,20 @@
             style="@style/TextAppearance.AppCompat.Title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
             tools:text="Brownies" />
+
+        <ImageView
+            android:id="@+id/expand_button"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:clickable="true"
+            android:contentDescription="@null"
+            android:focusable="true"
+            android:src="@drawable/ic_collapsed"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
             android:id="@+id/recipe_ingredients"
@@ -27,7 +40,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/app_spacing"
-            tools:text="\u2022 2 CUP of Graham Cracker crumbs\n\u2022 6 TBLSP of unsalted butter, melted\n\u2022 0.5 CUP of granulated sugar" />
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/recipe_title"
+            tools:text="\u2022 2 cups of Graham Cracker crumbs\n\u2022 6 tbs. of unsalted butter, melted\n\u2022 0.5 cups of granulated sugar" />
 
-    </LinearLayout>
+    </android.support.constraint.ConstraintLayout>
 </android.support.v7.widget.CardView>

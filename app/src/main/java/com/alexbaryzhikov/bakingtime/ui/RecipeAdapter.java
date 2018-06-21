@@ -5,6 +5,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.alexbaryzhikov.bakingtime.R;
@@ -27,7 +28,7 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
   private List<RecipeItem> recipeData;
 
   @Inject
-  public RecipeAdapter() {
+  RecipeAdapter() {
   }
 
   @NonNull
@@ -66,22 +67,37 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
     void onClick(int position);
   }
 
-  class RecipeViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
+  class RecipeViewHolder extends RecyclerView.ViewHolder {
 
     @BindView(R.id.recipe_title) TextView recipeTitle;
     @BindView(R.id.recipe_ingredients) TextView recipeIngredients;
+    @BindView(R.id.expand_button) ImageView expandButton;
+
+    private boolean expanded = false;
 
     RecipeViewHolder(View itemView) {
       super(itemView);
       ButterKnife.bind(this, itemView);
-      itemView.setOnClickListener(this);
-    }
 
-    @Override
-    public void onClick(View v) {
-      if (clickCallback != null) {
-        clickCallback.onClick(getAdapterPosition());
-      }
+      // Open recipe details fragment
+      itemView.setOnClickListener(v -> {
+        if (clickCallback != null) {
+          clickCallback.onClick(getAdapterPosition());
+        }
+      });
+
+      // Expand recipe ingredients
+      expandButton.setOnClickListener(v -> {
+        if (expanded) {
+          expandButton.setImageResource(R.drawable.ic_collapsed);
+          recipeIngredients.setVisibility(View.GONE);
+          expanded = false;
+        } else {
+          expandButton.setImageResource(R.drawable.ic_expanded);
+          recipeIngredients.setVisibility(View.VISIBLE);
+          expanded = true;
+        }
+      });
     }
   }
 }
