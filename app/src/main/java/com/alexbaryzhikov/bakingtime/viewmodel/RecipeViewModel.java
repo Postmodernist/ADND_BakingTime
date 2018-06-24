@@ -1,12 +1,16 @@
 package com.alexbaryzhikov.bakingtime.viewmodel;
 
+import android.app.Application;
 import android.arch.lifecycle.ViewModel;
 import android.support.annotation.NonNull;
 
 import com.alexbaryzhikov.bakingtime.datamodel.response.Recipe;
-import com.alexbaryzhikov.bakingtime.datamodel.view.RecipeItem;
+import com.alexbaryzhikov.bakingtime.datamodel.response.Step;
+import com.alexbaryzhikov.bakingtime.datamodel.view.BrowseItem;
+import com.alexbaryzhikov.bakingtime.datamodel.view.DetailItem;
+import com.alexbaryzhikov.bakingtime.datamodel.view.StepItem;
 import com.alexbaryzhikov.bakingtime.repositiory.Repository;
-import com.alexbaryzhikov.bakingtime.utils.Resource;
+import com.alexbaryzhikov.bakingtime.utils.NetworkResource;
 import com.alexbaryzhikov.bakingtime.utils.SimpleIdlingResource;
 
 import java.io.IOException;
@@ -21,18 +25,28 @@ import io.reactivex.subjects.BehaviorSubject;
 import retrofit2.Response;
 import retrofit2.adapter.rxjava2.Result;
 
+import static com.alexbaryzhikov.bakingtime.utils.RecipeUtils.buildIngredientsSummary;
+import static com.alexbaryzhikov.bakingtime.utils.RecipeUtils.buildSteps;
+
 public class RecipeViewModel extends ViewModel {
 
-  private static final Resource<List<RecipeItem>> errorResource =
-      Resource.error(Collections.emptyList());
+  private static final NetworkResource<List<BrowseItem>> LOADING_NETWORK_RESOURCE =
+      NetworkResource.loading(Collections.emptyList());
+  private static final NetworkResource<List<BrowseItem>> ERROR_NETWORK_RESOURCE =
+      NetworkResource.error(Collections.emptyList());
+  private static final BrowseRequest DEFAULT_BROWSE_REQUEST = new BrowseRequest();
 
+  private final Application application;
   private final Repository repository;
   private final SimpleIdlingResource idlingResource;
-  private final BehaviorSubject<Object> requestSubject = BehaviorSubject.create();
+  private final BehaviorSubject<BrowseRequest> browseSubject = BehaviorSubject.create();
+  private final BehaviorSubject<DetailRequest> detailSubject = BehaviorSubject.create();
+  private final BehaviorSubject<StepRequest> stepSubject = BehaviorSubject.create();
   private boolean initialized = false;
   private List<Recipe> recipes;
 
-  RecipeViewModel(Repository repository, SimpleIdlingResource idlingResource) {
+  RecipeViewModel(Application application, Repository repository, SimpleIdlingResource idlingResource) {
+    this.application = application;
     this.repository = repository;
     this.idlingResource = idlingResource;
   }
@@ -42,27 +56,45 @@ public class RecipeViewModel extends ViewModel {
       return;
     }
     initialized = true;
-    loadRecipes();
+    onBrowse();
   }
 
-  /** Get recipes observable */
-  public Observable<Resource<List<RecipeItem>>> getRecipes() {
-    return requestSubject
-        .flatMap(ignored -> repository.getRecipes()
+  /** Stream for browse fragment */
+  public Observable<NetworkResource<List<BrowseItem>>> getBrowseStream() {
+    return browseSubject
+        .flatMap(browseRequest -> repository.getRecipes()
             .doOnNext(this::cacheRecipes)
-            .map(this::toResource)
-            .startWith(Resource.loading(Collections.emptyList())))
-        .doOnNext(listResource -> idlingResource.setIdleState(listResource.getStatus() != Resource.Status.LOADING))
+            .map(this::toNetworkResource)
+            .startWith(LOADING_NETWORK_RESOURCE))
+        .doOnNext(listNetworkResource -> idlingResource.setIdleState(listNetworkResource.getStatus() != NetworkResource.Status.LOADING))
         .observeOn(AndroidSchedulers.mainThread());
   }
 
-  /** Trigger recipes observable to load recipes */
-  public void loadRecipes() {
-    requestSubject.onNext(new Object());
+  /** Trigger for browse stream */
+  public void onBrowse() {
+    browseSubject.onNext(DEFAULT_BROWSE_REQUEST);
   }
 
-  public Recipe getRecipe(int position) {
-    return recipes.get(position);
+  /** Stream for detail fragment */
+  public Observable<DetailItem> getDetailStream() {
+    return detailSubject
+        .map(detailRequest -> getRecipeDetails(detailRequest.getPosition()));
+  }
+
+  /** Trigger for detail stream */
+  public void onDetail(int position) {
+    detailSubject.onNext(new DetailRequest(position));
+  }
+
+  /** Stream for step fragment */
+  public Observable<StepItem> getStepStream() {
+    return stepSubject
+        .map(stepRequest -> getStepDetails(stepRequest.getRecipePosition(), stepRequest.getStepPosition()));
+  }
+
+  /** Trigger for step stream */
+  public void onStep(int recipePosition, int stepPosition) {
+    stepSubject.onNext(new StepRequest(recipePosition, stepPosition));
   }
 
   private void cacheRecipes(Result<List<Recipe>> listResult) {
@@ -75,37 +107,69 @@ public class RecipeViewModel extends ViewModel {
     }
   }
 
-  private Resource<List<RecipeItem>> toResource(@NonNull Result<List<Recipe>> result) {
+  private NetworkResource<List<BrowseItem>> toNetworkResource(@NonNull Result<List<Recipe>> result) {
     // Handle IO errors and propagate others
     if (result.isError()) {
       if (IOException.class.isInstance(result.error())) {
-        return errorResource;
+        return ERROR_NETWORK_RESOURCE;
       }
       RxJavaPlugins.onError(result.error());
-      return errorResource;
+      return ERROR_NETWORK_RESOURCE;
     }
 
     // Get response
     final Response<List<Recipe>> response = result.response();
     if (response == null) {
       // Should never happen. Response can be null only if result.isError() is true
-      RxJavaPlugins.onError(new AssertionError("result.isError() is false, but result.response() is null"));
-      return errorResource;
+      RxJavaPlugins.onError(new AssertionError("Response is null"));
+      return ERROR_NETWORK_RESOURCE;
     }
 
     // Get response body
-    final List<Recipe> recipeList = response.body();
+    final List<Recipe> recipes = response.body();
     // Return error if response is not OK (legit, we don't own the server)
     // or response body is null (should never happen)
-    if (!response.isSuccessful() || recipeList == null) {
-      return errorResource;
+    if (!response.isSuccessful() || recipes == null) {
+      return ERROR_NETWORK_RESOURCE;
     }
 
-    // Transform response items into RecipeItem list and return it
-    List<RecipeItem> recipeItemList = new ArrayList<>(recipeList.size());
-    for (Recipe recipe : recipeList) {
-      recipeItemList.add(new RecipeItem(recipe.name, recipe.ingredients));
+    // Transform to BrowseItems and wrap in NetworkResource
+    List<BrowseItem> browseItems = new ArrayList<>(recipes.size());
+    for (Recipe recipe : recipes) {
+      String name = recipe.name;
+      String ingredients = buildIngredientsSummary(application, recipe.ingredients);
+      browseItems.add(new BrowseItem(name, ingredients));
     }
-    return Resource.success(recipeItemList);
+    return NetworkResource.success(browseItems);
+  }
+
+  private DetailItem getRecipeDetails(int position) {
+    if (recipes == null) {
+      throw new IllegalStateException("View model is not initialized");
+    }
+    Recipe recipe = recipes.get(position);
+    if (recipe == null) {
+      throw new AssertionError("Recipe " + position + " is null");
+    }
+    final String ingredients = buildIngredientsSummary(application, recipe.ingredients);
+    final List<String> steps = buildSteps(application, recipe.steps);
+    return new DetailItem(recipe.name, position, ingredients, steps);
+  }
+
+  private StepItem getStepDetails(int recipePosition, int stepPosition) {
+    if (recipes == null) {
+      throw new IllegalStateException("View model is not initialized");
+    }
+    Recipe recipe = recipes.get(recipePosition);
+    if (recipe == null) {
+      throw new AssertionError("Recipe " + recipePosition + " is null");
+    }
+    Step step = recipe.steps.get(stepPosition);
+    if (step == null) {
+      throw new AssertionError("Step " + stepPosition + " is null");
+    }
+    final boolean first = stepPosition == 0;
+    final boolean last = stepPosition == recipe.steps.size() - 1;
+    return new StepItem(step.description, step.videoURL, first, last);
   }
 }

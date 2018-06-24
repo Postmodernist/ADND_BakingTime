@@ -14,11 +14,10 @@ import android.widget.ProgressBar;
 
 import com.alexbaryzhikov.bakingtime.BakingApp;
 import com.alexbaryzhikov.bakingtime.R;
-import com.alexbaryzhikov.bakingtime.datamodel.response.Ingredient;
-import com.alexbaryzhikov.bakingtime.datamodel.view.RecipeItem;
+import com.alexbaryzhikov.bakingtime.datamodel.view.BrowseItem;
 import com.alexbaryzhikov.bakingtime.di.components.BrowseFragmentComponent;
 import com.alexbaryzhikov.bakingtime.di.components.DaggerBrowseFragmentComponent;
-import com.alexbaryzhikov.bakingtime.utils.Resource;
+import com.alexbaryzhikov.bakingtime.utils.NetworkResource;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
 
 import java.util.List;
@@ -29,8 +28,6 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.disposables.Disposable;
 
-import static com.alexbaryzhikov.bakingtime.utils.RecipeUtils.smartValueOf;
-
 /** List of recipes */
 public class BrowseFragment extends Fragment {
 
@@ -39,7 +36,7 @@ public class BrowseFragment extends Fragment {
   @BindView(R.id.error_viewgroup) ViewGroup errorViewGroup;
   @BindView(R.id.refresh_button) Button refreshButton;
 
-  @Inject RecipeAdapter adapter;
+  @Inject BrowseAdapter adapter;
   @Inject RecipeViewModel viewModel;
   @Inject MainActivity mainActivity;
 
@@ -92,19 +89,20 @@ public class BrowseFragment extends Fragment {
     // Set activity title
     mainActivity.setTitle(getString(R.string.app_name));
     // Setup refresh button
-    refreshButton.setOnClickListener(v -> viewModel.loadRecipes());
+    refreshButton.setOnClickListener(v -> viewModel.onBrowse());
     // Setup recipes list
     recipeList.setLayoutManager(browseFragmentComponent.layoutManager());
     recipeList.setAdapter(adapter);
     // Subscribe to recipes stream
     if (adapter.getItemCount() == 0) {
-      disposable = adapter.subscribeTo(viewModel.getRecipes()
-          .doOnNext(listResource -> renderStatus(listResource.getStatus()))
-          .map(this::toRecipeItems));
+      disposable = adapter.subscribeTo(viewModel.getBrowseStream()
+          .doOnNext(this::renderNetworkStatus)
+          .map(this::stripNetworkStatus));
     }
   }
 
-  private void renderStatus(Resource.Status status) {
+  private void renderNetworkStatus(NetworkResource networkResource) {
+    NetworkResource.Status status = networkResource.getStatus();
     switch (status) {
       case LOADING:
         loadingIndicator.setVisibility(View.VISIBLE);
@@ -123,18 +121,11 @@ public class BrowseFragment extends Fragment {
     }
   }
 
-  /** Strip resource wrapper and generate ingredients string for each recipe */
-  private List<RecipeItem> toRecipeItems(Resource<List<RecipeItem>> listResource) {
-    List<RecipeItem> recipes = listResource.getData();
-    assert recipes != null;
-    for (RecipeItem recipe : recipes) {
-      StringBuilder sb = new StringBuilder();
-      for (Ingredient ingredient : recipe.getIngredients()) {
-        sb.append(getString(R.string.ingredient,
-            smartValueOf(ingredient.quantity, ingredient.measure), ingredient.ingredient));
-      }
-      recipe.setIngredientsStr(sb.substring(0, sb.length() - 1));
+  private List<BrowseItem> stripNetworkStatus(NetworkResource<List<BrowseItem>> networkResource) {
+    List<BrowseItem> recipeItems = networkResource.getData();
+    if (recipeItems == null) {
+      throw new AssertionError("NetworkResource with null data");
     }
-    return recipes;
+    return recipeItems;
   }
 }

@@ -1,8 +1,10 @@
 <resources>
     <string name="app_name">Baking Time</string>
-
     <string name="browse_error_message">Oops, something went wrong…\nClick REFRESH to try again</string>
     <string name="refresh_button_text">Refresh</string>
-    <string name="ingredient">\u2022 %s %s\n</string>
+    <string name="ingredient_fmt">\u2022 %s %s\n</string>
+    <string name="step_fmt">%d. %s</string>
     <string name="ingredients_label">Ingredients</string>
+    <string name="prev_step_button">Prev step</string>
+    <string name="next_step_button">Next step</string>
 </resources>

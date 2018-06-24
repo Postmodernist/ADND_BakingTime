@@ -9,7 +9,7 @@ import android.support.v7.widget.RecyclerView.LayoutManager;
 import com.alexbaryzhikov.bakingtime.di.scopes.BrowseFragmentScope;
 import com.alexbaryzhikov.bakingtime.ui.BrowseFragment;
 import com.alexbaryzhikov.bakingtime.ui.MainActivity;
-import com.alexbaryzhikov.bakingtime.ui.RecipeAdapter.RecipeClickCallback;
+import com.alexbaryzhikov.bakingtime.ui.BrowseAdapter.RecipeClickCallback;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModelFactory;
 

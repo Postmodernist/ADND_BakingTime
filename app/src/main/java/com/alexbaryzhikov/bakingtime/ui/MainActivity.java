@@ -47,4 +47,12 @@ public class MainActivity extends AppCompatActivity {
         .replace(R.id.fragment_container, fragment)
         .commit();
   }
+
+  public void showStep(int recipePosition, int stepPosition) {
+    StepFragment fragment = StepFragment.forStep(recipePosition, stepPosition);
+    getSupportFragmentManager().beginTransaction()
+        .addToBackStack("step")
+        .replace(R.id.fragment_container, fragment)
+        .commit();
+  }
 }

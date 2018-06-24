@@ -1,5 +1,6 @@
 package com.alexbaryzhikov.bakingtime.viewmodel;
 
+import android.app.Application;
 import android.arch.lifecycle.ViewModel;
 import android.arch.lifecycle.ViewModelProvider;
 import android.support.annotation.NonNull;
@@ -13,6 +14,7 @@ import javax.inject.Singleton;
 @Singleton
 public class RecipeViewModelFactory extends ViewModelProvider.NewInstanceFactory {
 
+  @Inject Application application;
   @Inject Repository repository;
   @Inject SimpleIdlingResource idlingResource;
 
@@ -24,6 +26,6 @@ public class RecipeViewModelFactory extends ViewModelProvider.NewInstanceFactory
   @Override
   @SuppressWarnings("unchecked")
   public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
-    return (T) new RecipeViewModel(repository, idlingResource);
+    return (T) new RecipeViewModel(application, repository, idlingResource);
   }
 }

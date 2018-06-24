@@ -9,7 +9,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.alexbaryzhikov.bakingtime.R;
-import com.alexbaryzhikov.bakingtime.datamodel.view.RecipeItem;
+import com.alexbaryzhikov.bakingtime.datamodel.view.BrowseItem;
 import com.alexbaryzhikov.bakingtime.di.scopes.BrowseFragmentScope;
 
 import java.util.List;
@@ -22,13 +22,13 @@ import io.reactivex.Observable;
 import io.reactivex.disposables.Disposable;
 
 @BrowseFragmentScope
-public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeViewHolder> {
+public class BrowseAdapter extends RecyclerView.Adapter<BrowseAdapter.RecipeViewHolder> {
 
   @Inject RecipeClickCallback clickCallback;
-  private List<RecipeItem> recipeData;
+  private List<BrowseItem> browseItems;
 
   @Inject
-  RecipeAdapter() {
+  BrowseAdapter() {
   }
 
   @NonNull
@@ -41,25 +41,25 @@ public class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeView
 
   @Override
   public void onBindViewHolder(@NonNull RecipeViewHolder holder, int position) {
-    holder.recipeTitle.setText(recipeData.get(position).getName());
-    holder.recipeIngredients.setText(recipeData.get(position).getIngredientsStr());
+    holder.recipeTitle.setText(browseItems.get(position).getName());
+    holder.recipeIngredients.setText(browseItems.get(position).getIngredients());
   }
 
   @Override
   public int getItemCount() {
-    if (recipeData == null) {
+    if (browseItems == null) {
       return 0;
     }
-    return recipeData.size();
+    return browseItems.size();
   }
 
-  public Disposable subscribeTo(Observable<List<RecipeItem>> observable) {
-    return observable.subscribe(this::setRecipeData,
+  public Disposable subscribeTo(Observable<List<BrowseItem>> observable) {
+    return observable.subscribe(this::setBrowseItems,
         throwable -> { throw new RuntimeException(throwable); });
   }
 
-  private void setRecipeData(List<RecipeItem> recipeData) {
-    this.recipeData = recipeData;
+  private void setBrowseItems(List<BrowseItem> browseItems) {
+    this.browseItems = browseItems;
     notifyDataSetChanged();
   }
 

@@ -6,27 +6,21 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.RecyclerView.LayoutManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
 import com.alexbaryzhikov.bakingtime.BakingApp;
 import com.alexbaryzhikov.bakingtime.R;
-import com.alexbaryzhikov.bakingtime.datamodel.response.Ingredient;
-import com.alexbaryzhikov.bakingtime.datamodel.response.Recipe;
 import com.alexbaryzhikov.bakingtime.di.components.DaggerDetailFragmentComponent;
 import com.alexbaryzhikov.bakingtime.di.components.DetailFragmentComponent;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
-
-import java.util.List;
 
 import javax.inject.Inject;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-
-import static com.alexbaryzhikov.bakingtime.utils.RecipeUtils.smartValueOf;
+import io.reactivex.disposables.Disposable;
 
 /** Cooking steps */
 public class DetailFragment extends Fragment {
@@ -37,9 +31,10 @@ public class DetailFragment extends Fragment {
 
   @Inject RecipeViewModel viewModel;
   @Inject MainActivity mainActivity;
-  @Inject StepsAdapter adapter;
+  @Inject DetailAdapter adapter;
 
   private DetailFragmentComponent detailFragmentComponent;
+  private Disposable disposable;
 
   public DetailFragment() {
     // Required empty public constructor
@@ -55,7 +50,7 @@ public class DetailFragment extends Fragment {
 
   @Override
   public void onAttach(Context context) {
-    setupDagger();
+    setupDagger(context);
     super.onAttach(context);
   }
 
@@ -68,10 +63,17 @@ public class DetailFragment extends Fragment {
     return view;
   }
 
-  private void setupDagger() {
-    assert getContext() != null;
+  @Override
+  public void onDestroyView() {
+    super.onDestroyView();
+    if (disposable != null) {
+      disposable.dispose();
+    }
+  }
+
+  private void setupDagger(Context context) {
     detailFragmentComponent = DaggerDetailFragmentComponent.builder()
-        .appComponent(BakingApp.getAppComponent(getContext()))
+        .appComponent(BakingApp.getAppComponent(context))
         .fragment(this)
         .build();
     detailFragmentComponent.inject(this);
@@ -82,29 +84,19 @@ public class DetailFragment extends Fragment {
     mainActivity.showBackInActionBar();
     // Get fragment arguments
     Bundle args = getArguments();
-    if (args != null && args.containsKey(KEY_POSITION)) {
-      final int position = args.getInt(KEY_POSITION);
-      Recipe recipe = viewModel.getRecipe(position);
-      // Set activity title
-      mainActivity.setTitle(recipe.name);
-      // Setup cooking steps list
-      LayoutManager layoutManager = detailFragmentComponent.layoutManager();
-      DividerItemDecoration divider =
-          new DividerItemDecoration(cookingSteps.getContext(), DividerItemDecoration.VERTICAL);
-      cookingSteps.setLayoutManager(layoutManager);
-      cookingSteps.addItemDecoration(divider);
-      cookingSteps.setAdapter(adapter);
-      adapter.setIngredients(buildIngredientsString(recipe.ingredients));
-      adapter.setSteps(recipe.steps);
+    if (args == null || !args.containsKey(KEY_POSITION)) {
+      throw new AssertionError("Recipe position argument expected");
     }
-  }
-
-  private String buildIngredientsString(List<Ingredient> ingredients) {
-    StringBuilder sb = new StringBuilder();
-    for (Ingredient ingredient : ingredients) {
-      sb.append(getString(R.string.ingredient,
-          smartValueOf(ingredient.quantity, ingredient.measure), ingredient.ingredient));
-    }
-    return sb.substring(0, sb.length() - 1);
+    final int position = args.getInt(KEY_POSITION);
+    // Setup cooking steps list
+    DividerItemDecoration divider =
+        new DividerItemDecoration(cookingSteps.getContext(), DividerItemDecoration.VERTICAL);
+    cookingSteps.setLayoutManager(detailFragmentComponent.layoutManager());
+    cookingSteps.addItemDecoration(divider);
+    cookingSteps.setAdapter(adapter);
+    disposable = adapter.subscribeTo(viewModel.getDetailStream()
+        // Set activity title
+        .doOnNext(recipeDetails -> mainActivity.setTitle(recipeDetails.getName())));
+    viewModel.onDetail(position);
   }
 }
