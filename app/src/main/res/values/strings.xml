@@ -7,4 +7,5 @@
     <string name="ingredients_label">Ingredients</string>
     <string name="prev_step_button">Prev step</string>
     <string name="next_step_button">Next step</string>
+    <string name="no_video">No video available</string>
 </resources>

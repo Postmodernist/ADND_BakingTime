@@ -1,10 +1,12 @@
 package com.alexbaryzhikov.bakingtime.ui;
 
 import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,6 +18,9 @@ import com.alexbaryzhikov.bakingtime.R;
 import com.alexbaryzhikov.bakingtime.datamodel.view.StepItem;
 import com.alexbaryzhikov.bakingtime.di.components.DaggerStepFragmentComponent;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
+import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.source.ExtractorMediaSource;
+import com.google.android.exoplayer2.source.MediaSource;
 import com.google.android.exoplayer2.ui.PlayerView;
 
 import javax.inject.Inject;
@@ -31,12 +36,15 @@ public class StepFragment extends Fragment {
   private static final String KEY_STEP_POSITION = "step-position";
 
   @BindView(R.id.player_view) PlayerView playerView;
+  @BindView(R.id.no_video) TextView noVideo;
   @BindView(R.id.instructions) TextView instructions;
   @BindView(R.id.prev_step) Button prevStep;
   @BindView(R.id.next_step) Button nextStep;
 
   @Inject RecipeViewModel viewModel;
-  @Inject MainActivity mainActivity;
+  @Inject SimpleExoPlayer exoPlayer;
+  @Inject ExtractorMediaSource.Factory extractorsFactory;
+  @Inject StepPlayerEventListener playerEventListener;
 
   private Disposable disposable;
   private int stepPosition;
@@ -76,6 +84,7 @@ public class StepFragment extends Fragment {
     if (disposable != null) {
       disposable.dispose();
     }
+    releasePlayer();
   }
 
   private void setupDagger(Context context) {
@@ -106,5 +115,34 @@ public class StepFragment extends Fragment {
     instructions.setText(stepItem.getDescription());
     prevStep.setVisibility(stepItem.isFirst() ? View.INVISIBLE : View.VISIBLE);
     nextStep.setVisibility(stepItem.isLast() ? View.INVISIBLE : View.VISIBLE);
+    if (TextUtils.isEmpty(stepItem.getVideoUrl())) {
+      playerView.setVisibility(View.INVISIBLE);
+      noVideo.setVisibility(View.VISIBLE);
+      exoPlayer.stop();
+    } else {
+      playerView.setVisibility(View.VISIBLE);
+      noVideo.setVisibility(View.INVISIBLE);
+      initPlayer(Uri.parse(stepItem.getVideoUrl()));
+    }
+  }
+
+  private void initPlayer(Uri videoUri) {
+    if (playerView.getPlayer() == null) {
+      playerEventListener.setPlayerView(playerView);
+      exoPlayer.addListener(playerEventListener);
+      playerView.setPlayer(exoPlayer);
+    }
+    exoPlayer.setPlayWhenReady(false);
+    MediaSource mediaSource = extractorsFactory.createMediaSource(videoUri);
+    exoPlayer.prepare(mediaSource);
+  }
+
+  private void releasePlayer() {
+    if (exoPlayer == null) {
+      return;
+    }
+    exoPlayer.stop();
+    exoPlayer.release();
+    exoPlayer = null;
   }
 }
