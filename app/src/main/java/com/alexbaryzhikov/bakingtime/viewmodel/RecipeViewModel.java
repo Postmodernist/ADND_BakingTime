@@ -42,8 +42,11 @@ public class RecipeViewModel extends ViewModel {
   private final BehaviorSubject<BrowseRequest> browseSubject = BehaviorSubject.create();
   private final BehaviorSubject<DetailRequest> detailSubject = BehaviorSubject.create();
   private final BehaviorSubject<StepRequest> stepSubject = BehaviorSubject.create();
+
   private boolean initialized = false;
   private List<Recipe> recipes;
+  private DetailRequest detailRequest;
+  private StepRequest stepRequest;
 
   RecipeViewModel(Application application, Repository repository, SimpleIdlingResource idlingResource) {
     this.application = application;
@@ -62,10 +65,15 @@ public class RecipeViewModel extends ViewModel {
   /** Stream for browse fragment */
   public Observable<NetworkResource<List<BrowseItem>>> getBrowseStream() {
     return browseSubject
-        .flatMap(browseRequest -> repository.getRecipes()
-            .doOnNext(this::cacheRecipes)
-            .map(this::toNetworkResource)
-            .startWith(LOADING_NETWORK_RESOURCE))
+        .flatMap(browseRequest -> recipes != null ?
+            Observable.just(recipes)
+                .map(this::toBrowseItems)
+                .map(NetworkResource::success)
+            :
+            repository.getRecipes()
+                .doOnNext(this::cacheRecipes)
+                .map(this::toNetworkResource)
+                .startWith(LOADING_NETWORK_RESOURCE))
         .doOnNext(listNetworkResource -> idlingResource.setIdleState(listNetworkResource.getStatus() != NetworkResource.Status.LOADING))
         .observeOn(AndroidSchedulers.mainThread());
   }
@@ -81,9 +89,14 @@ public class RecipeViewModel extends ViewModel {
         .map(detailRequest -> getRecipeDetails(detailRequest.getPosition()));
   }
 
+  /** Setup detail request */
+  public void setDetail(int position) {
+    detailRequest = new DetailRequest(position);
+  }
+
   /** Trigger for detail stream */
-  public void onDetail(int position) {
-    detailSubject.onNext(new DetailRequest(position));
+  public void onDetail() {
+    detailSubject.onNext(detailRequest);
   }
 
   /** Stream for step fragment */
@@ -92,9 +105,19 @@ public class RecipeViewModel extends ViewModel {
         .map(stepRequest -> getStepDetails(stepRequest.getRecipePosition(), stepRequest.getStepPosition()));
   }
 
+  /** Set step request */
+  public void setStep(int recipePosition, int stepPosition) {
+    stepRequest = new StepRequest(recipePosition, stepPosition);
+  }
+
   /** Trigger for step stream */
-  public void onStep(int recipePosition, int stepPosition) {
-    stepSubject.onNext(new StepRequest(recipePosition, stepPosition));
+  public void onStep(int direction) {
+    if (direction > 0) {
+      stepRequest = stepRequest.next();
+    } else if (direction < 0) {
+      stepRequest = stepRequest.prev();
+    }
+    stepSubject.onNext(stepRequest);
   }
 
   private void cacheRecipes(Result<List<Recipe>> listResult) {
@@ -134,13 +157,18 @@ public class RecipeViewModel extends ViewModel {
     }
 
     // Transform to BrowseItems and wrap in NetworkResource
+    List<BrowseItem> browseItems = toBrowseItems(recipes);
+    return NetworkResource.success(browseItems);
+  }
+
+  private List<BrowseItem> toBrowseItems(List<Recipe> recipes) {
     List<BrowseItem> browseItems = new ArrayList<>(recipes.size());
     for (Recipe recipe : recipes) {
       String name = recipe.name;
       String ingredients = buildIngredientsSummary(application, recipe.ingredients);
       browseItems.add(new BrowseItem(name, ingredients));
     }
-    return NetworkResource.success(browseItems);
+    return browseItems;
   }
 
   private DetailItem getRecipeDetails(int position) {

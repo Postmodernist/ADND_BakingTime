@@ -25,8 +25,6 @@ import io.reactivex.disposables.Disposable;
 /** Cooking steps */
 public class DetailFragment extends Fragment {
 
-  private static final String KEY_POSITION = "position";
-
   @BindView(R.id.cooking_steps) RecyclerView cookingSteps;
 
   @Inject RecipeViewModel viewModel;
@@ -38,14 +36,6 @@ public class DetailFragment extends Fragment {
 
   public DetailFragment() {
     // Required empty public constructor
-  }
-
-  static DetailFragment forRecipe(int position) {
-    DetailFragment fragment = new DetailFragment();
-    Bundle args = new Bundle();
-    args.putInt(KEY_POSITION, position);
-    fragment.setArguments(args);
-    return fragment;
   }
 
   @Override
@@ -82,12 +72,6 @@ public class DetailFragment extends Fragment {
   private void setupFragment() {
     // Show action bar back button
     mainActivity.showBackInActionBar();
-    // Get fragment arguments
-    Bundle args = getArguments();
-    if (args == null || !args.containsKey(KEY_POSITION)) {
-      throw new AssertionError("Recipe position argument expected");
-    }
-    final int position = args.getInt(KEY_POSITION);
     // Setup cooking steps list
     DividerItemDecoration divider =
         new DividerItemDecoration(cookingSteps.getContext(), DividerItemDecoration.VERTICAL);
@@ -97,6 +81,6 @@ public class DetailFragment extends Fragment {
     disposable = adapter.subscribeTo(viewModel.getDetailStream()
         // Set activity title
         .doOnNext(recipeDetails -> mainActivity.setTitle(recipeDetails.getName())));
-    viewModel.onDetail(position);
+    viewModel.onDetail();
   }
 }

@@ -10,6 +10,14 @@ public final class StepRequest {
     this.stepPosition = stepPosition;
   }
 
+  public StepRequest next() {
+    return new StepRequest(recipePosition, stepPosition + 1);
+  }
+
+  public StepRequest prev() {
+    return new StepRequest(recipePosition, stepPosition - 1);
+  }
+
   public int getRecipePosition() {
     return recipePosition;
   }

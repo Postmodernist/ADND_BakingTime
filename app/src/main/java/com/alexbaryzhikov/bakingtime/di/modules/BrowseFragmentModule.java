@@ -8,6 +8,7 @@ import android.support.v7.widget.RecyclerView.LayoutManager;
 
 import com.alexbaryzhikov.bakingtime.di.scopes.BrowseFragmentScope;
 import com.alexbaryzhikov.bakingtime.ui.BrowseFragment;
+import com.alexbaryzhikov.bakingtime.ui.DetailFragment;
 import com.alexbaryzhikov.bakingtime.ui.MainActivity;
 import com.alexbaryzhikov.bakingtime.ui.BrowseAdapter.RecipeClickCallback;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
@@ -32,12 +33,19 @@ public class BrowseFragmentModule {
 
   @Provides
   @BrowseFragmentScope
-  RecipeClickCallback provideRecipeClickCallback(MainActivity mainActivity, BrowseFragment fragment) {
+  RecipeClickCallback provideRecipeClickCallback(MainActivity mainActivity, BrowseFragment browseFragment,
+                                                 RecipeViewModel viewModel, DetailFragment detailFragment) {
     return position -> {
-      if (fragment.getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
-        mainActivity.showRecipeDetails(position);
+      if (browseFragment.getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
+        viewModel.setDetail(position);
+        mainActivity.showFragment(detailFragment, "detail_fragment");
       }
     };
+  }
+
+  @Provides
+  DetailFragment provideDetailFragment() {
+    return new DetailFragment();
   }
 
   @Provides

@@ -10,6 +10,7 @@ import com.alexbaryzhikov.bakingtime.di.scopes.DetailFragmentScope;
 import com.alexbaryzhikov.bakingtime.ui.DetailFragment;
 import com.alexbaryzhikov.bakingtime.ui.MainActivity;
 import com.alexbaryzhikov.bakingtime.ui.DetailAdapter.StepClickCallback;
+import com.alexbaryzhikov.bakingtime.ui.StepFragment;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModelFactory;
 
@@ -32,12 +33,19 @@ public class DetailFragmentModule {
 
   @Provides
   @DetailFragmentScope
-  StepClickCallback provideStepClickCallback(MainActivity mainActivity, DetailFragment fragment) {
+  StepClickCallback provideStepClickCallback(MainActivity mainActivity, DetailFragment detailFragment,
+                                             RecipeViewModel viewModel, StepFragment stepFragment) {
     return (recipePosition, stepPosition) -> {
-      if (fragment.getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
-        mainActivity.showStep(recipePosition, stepPosition);
+      if (detailFragment.getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
+        viewModel.setStep(recipePosition, stepPosition);
+        mainActivity.showFragment(stepFragment, "step_fragment");
       }
     };
+  }
+
+  @Provides
+  StepFragment provideStepFragment() {
+    return new StepFragment();
   }
 
   @Provides

@@ -1,5 +1,6 @@
 package com.alexbaryzhikov.bakingtime.ui;
 
+import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -40,18 +41,9 @@ public class MainActivity extends AppCompatActivity {
     }
   }
 
-  public void showRecipeDetails(int position) {
-    DetailFragment fragment = DetailFragment.forRecipe(position);
+  public void showFragment(Fragment fragment, String backStackName) {
     getSupportFragmentManager().beginTransaction()
-        .addToBackStack("recipe")
-        .replace(R.id.fragment_container, fragment)
-        .commit();
-  }
-
-  public void showStep(int recipePosition, int stepPosition) {
-    StepFragment fragment = StepFragment.forStep(recipePosition, stepPosition);
-    getSupportFragmentManager().beginTransaction()
-        .addToBackStack("step")
+        .addToBackStack(backStackName)
         .replace(R.id.fragment_container, fragment)
         .commit();
   }
