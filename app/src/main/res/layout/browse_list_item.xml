@@ -4,10 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginEnd="@dimen/app_spacing"
-    android:layout_marginStart="@dimen/app_spacing"
-    android:layout_marginTop="@dimen/app_spacing"
-    app:cardBackgroundColor="@color/colorBackground">
+    android:layout_margin="@dimen/app_spacing">
 
     <android.support.constraint.ConstraintLayout
         android:layout_width="match_parent"

@@ -5,12 +5,13 @@ import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView.LayoutManager;
+import android.support.v7.widget.StaggeredGridLayoutManager;
 
 import com.alexbaryzhikov.bakingtime.di.scopes.BrowseFragmentScope;
+import com.alexbaryzhikov.bakingtime.ui.BrowseAdapter.RecipeClickCallback;
 import com.alexbaryzhikov.bakingtime.ui.BrowseFragment;
 import com.alexbaryzhikov.bakingtime.ui.DetailFragment;
 import com.alexbaryzhikov.bakingtime.ui.MainActivity;
-import com.alexbaryzhikov.bakingtime.ui.BrowseAdapter.RecipeClickCallback;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModelFactory;
 
@@ -22,7 +23,9 @@ public class BrowseFragmentModule {
 
   @Provides
   LayoutManager provideLayoutManager(Context context) {
-    return new LinearLayoutManager(context);
+    boolean phone = context.getResources().getConfiguration().smallestScreenWidthDp < 600;
+    return phone ? new LinearLayoutManager(context) :
+        new StaggeredGridLayoutManager(3, StaggeredGridLayoutManager.VERTICAL);
   }
 
   @Provides
@@ -37,8 +40,8 @@ public class BrowseFragmentModule {
                                                  RecipeViewModel viewModel, DetailFragment detailFragment) {
     return position -> {
       if (browseFragment.getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.STARTED)) {
-        viewModel.setDetail(position);
-        mainActivity.showFragment(detailFragment, "detail_fragment");
+        viewModel.emitDetail(position);
+        mainActivity.showFragment(detailFragment, "DetailFragment");
       }
     };
   }

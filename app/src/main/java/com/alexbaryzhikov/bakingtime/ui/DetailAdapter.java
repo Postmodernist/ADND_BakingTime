@@ -26,6 +26,7 @@ public class DetailAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
 
   @Inject StepClickCallback stepClickCallback;
   private DetailItem detailItem;
+  private int selectedPosition = 1;
 
   @Inject
   DetailAdapter() {
@@ -51,6 +52,7 @@ public class DetailAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
       ((IngredientsViewHolder) holder).recipeIngredients.setText(detailItem.getIngredients());
     } else if (holder instanceof StepViewHolder) {
       ((StepViewHolder) holder).stepDescription.setText(detailItem.getSteps().get(position - 1));
+      ((StepViewHolder) holder).selectionMark.setVisibility(position == selectedPosition ? View.VISIBLE : View.INVISIBLE);
     }
   }
 
@@ -72,8 +74,20 @@ public class DetailAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         throwable -> { throw new RuntimeException(throwable); });
   }
 
+  public Disposable subscribeSelection(Observable<Integer> observable) {
+    return observable.subscribe(this::updateSelection,
+        throwable -> { throw new RuntimeException(throwable); });
+  }
+
   private void setDetailItem(DetailItem detailItem) {
     this.detailItem = detailItem;
+    notifyDataSetChanged();
+  }
+
+  private void updateSelection(int position) {
+    notifyItemChanged(selectedPosition);
+    selectedPosition = position + 1;
+    notifyItemChanged(selectedPosition);
   }
 
   public interface StepClickCallback {
@@ -93,6 +107,7 @@ public class DetailAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
   class StepViewHolder extends RecyclerView.ViewHolder {
 
     @BindView(R.id.step_description) TextView stepDescription;
+    @BindView(R.id.selection_mark) View selectionMark;
 
     StepViewHolder(View itemView) {
       super(itemView);

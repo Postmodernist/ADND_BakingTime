@@ -31,16 +31,16 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.disposables.Disposable;
 
-import static android.content.res.Configuration.ORIENTATION_PORTRAIT;
+import static android.content.res.Configuration.ORIENTATION_LANDSCAPE;
 
 /** Cooking step details */
 public class StepFragment extends Fragment {
 
   @BindView(R.id.player_view) PlayerView playerView;
   @BindView(R.id.no_video) TextView noVideo;
-  TextView instructions;
-  Button prevStep;
-  Button nextStep;
+  @Nullable @BindView(R.id.instructions) TextView instructions;
+  @Nullable @BindView(R.id.prev_step) Button prevStep;
+  @Nullable @BindView(R.id.next_step) Button nextStep;
 
   @Inject RecipeViewModel viewModel;
   @Inject MainActivity mainActivity;
@@ -49,8 +49,8 @@ public class StepFragment extends Fragment {
   @Inject StepPlayerEventListener playerEventListener;
 
   private Disposable disposable;
-  private int orientation;
   private int systemVisibility;
+  private boolean uiHidden = false;
 
   public StepFragment() {
     // Required empty public constructor
@@ -66,14 +66,9 @@ public class StepFragment extends Fragment {
   @Override
   public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                            @Nullable Bundle savedInstanceState) {
+    mainActivity.showBackInActionBar();
     View view = inflater.inflate(R.layout.fragment_step, container, false);
     ButterKnife.bind(this, view);
-    orientation = mainActivity.getResources().getConfiguration().orientation;
-    if (orientation == ORIENTATION_PORTRAIT) {
-      instructions = view.findViewById(R.id.instructions);
-      prevStep = view.findViewById(R.id.prev_step);
-      nextStep = view.findViewById(R.id.next_step);
-    }
     setupFragment();
     return view;
   }
@@ -84,8 +79,8 @@ public class StepFragment extends Fragment {
     if (disposable != null) {
       disposable.dispose();
     }
-    releasePlayer();
     restoreSystemUi();
+    releasePlayer();
   }
 
   private void setupDagger(Context context) {
@@ -96,53 +91,36 @@ public class StepFragment extends Fragment {
         .inject(this);
   }
 
-  private void setupFragment() {
-    if (orientation == ORIENTATION_PORTRAIT) {
-      // Show action bar back button
-      mainActivity.showBackInActionBar();
+  public void setupFragment() {
+    boolean phone = mainActivity.getResources().getConfiguration().smallestScreenWidthDp < 600;
+    int orientation = mainActivity.getResources().getConfiguration().orientation;
+    boolean fullscreen = phone && orientation == ORIENTATION_LANDSCAPE;
+    if (fullscreen) {
       // Subscribe
-      disposable = viewModel.getStepStream().subscribe(this::renderStepPort);
-      viewModel.onStep(0);
-      // Setup buttons
-      prevStep.setOnClickListener(v -> viewModel.onStep(-1));
-      nextStep.setOnClickListener(v -> viewModel.onStep(1));
+      disposable = viewModel.getStepStream()
+          .doOnNext(stepItem -> mainActivity.setTitle(stepItem.getRecipeName()))
+          .subscribe(this::renderStepFullscreen);
     } else {
-      hideSystemUi();
+      // Setup buttons
+      if (prevStep != null && nextStep != null) {
+        prevStep.setOnClickListener(v -> viewModel.emitPrevStep());
+        nextStep.setOnClickListener(v -> viewModel.emitNextStep());
+      }
       // Subscribe
-      disposable = viewModel.getStepStream().subscribe(this::renderStepLand);
-      viewModel.onStep(0);
+      disposable = viewModel.getStepStream()
+          .doOnNext(stepItem -> mainActivity.setTitle(stepItem.getRecipeName()))
+          .subscribe(this::renderStepDefault);
     }
   }
 
-  private void hideSystemUi() {
-    ActionBar actionBar = mainActivity.getSupportActionBar();
-    if (actionBar != null) {
-      actionBar.hide();
+  private void renderStepDefault(StepItem stepItem) {
+    if (instructions != null) {
+      instructions.setText(stepItem.getDescription());
     }
-    if (Build.VERSION.SDK_INT >= 19) {
-      View decorView = mainActivity.getWindow().getDecorView();
-      systemVisibility = decorView.getSystemUiVisibility();
-      decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE
-          | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-          | View.SYSTEM_UI_FLAG_FULLSCREEN);
+    if (prevStep != null && nextStep != null) {
+      prevStep.setVisibility(stepItem.isFirst() ? View.INVISIBLE : View.VISIBLE);
+      nextStep.setVisibility(stepItem.isLast() ? View.INVISIBLE : View.VISIBLE);
     }
-  }
-
-  private void restoreSystemUi() {
-    ActionBar actionBar = mainActivity.getSupportActionBar();
-    if (actionBar != null) {
-      actionBar.show();
-    }
-    if (Build.VERSION.SDK_INT >= 19) {
-      View decorView = mainActivity.getWindow().getDecorView();
-      decorView.setSystemUiVisibility(systemVisibility);
-    }
-  }
-
-  private void renderStepPort(StepItem stepItem) {
-    instructions.setText(stepItem.getDescription());
-    prevStep.setVisibility(stepItem.isFirst() ? View.INVISIBLE : View.VISIBLE);
-    nextStep.setVisibility(stepItem.isLast() ? View.INVISIBLE : View.VISIBLE);
     if (TextUtils.isEmpty(stepItem.getVideoUrl())) {
       playerView.setVisibility(View.INVISIBLE);
       noVideo.setVisibility(View.VISIBLE);
@@ -154,7 +132,8 @@ public class StepFragment extends Fragment {
     }
   }
 
-  private void renderStepLand(StepItem stepItem) {
+  private void renderStepFullscreen(StepItem stepItem) {
+    hideSystemUi();
     if (TextUtils.isEmpty(stepItem.getVideoUrl())) {
       playerView.setVisibility(View.INVISIBLE);
       noVideo.setVisibility(View.VISIBLE);
@@ -184,5 +163,34 @@ public class StepFragment extends Fragment {
     exoPlayer.stop();
     exoPlayer.release();
     exoPlayer = null;
+  }
+
+  private void hideSystemUi() {
+    uiHidden = true;
+    ActionBar actionBar = mainActivity.getSupportActionBar();
+    if (actionBar != null) {
+      actionBar.hide();
+    }
+    if (Build.VERSION.SDK_INT >= 19) {
+      View decorView = mainActivity.getWindow().getDecorView();
+      systemVisibility = decorView.getSystemUiVisibility();
+      decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE
+          | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+          | View.SYSTEM_UI_FLAG_FULLSCREEN);
+    }
+  }
+
+  private void restoreSystemUi() {
+    if (!uiHidden) {
+      return;
+    }
+    ActionBar actionBar = mainActivity.getSupportActionBar();
+    if (actionBar != null) {
+      actionBar.show();
+    }
+    if (Build.VERSION.SDK_INT >= 19) {
+      View decorView = mainActivity.getWindow().getDecorView();
+      decorView.setSystemUiVisibility(systemVisibility);
+    }
   }
 }

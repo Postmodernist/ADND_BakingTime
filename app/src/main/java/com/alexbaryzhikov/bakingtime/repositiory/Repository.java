@@ -15,8 +15,7 @@ import retrofit2.adapter.rxjava2.Result;
 public class Repository {
 
   @SuppressWarnings("WeakerAccess")
-  @Inject
-  RecipeApi recipeApi;
+  @Inject RecipeApi recipeApi;
 
   @Inject
   Repository() {

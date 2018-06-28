@@ -20,7 +20,7 @@ import javax.inject.Inject;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import io.reactivex.disposables.Disposable;
+import io.reactivex.disposables.CompositeDisposable;
 
 /** Cooking steps */
 public class DetailFragment extends Fragment {
@@ -30,9 +30,10 @@ public class DetailFragment extends Fragment {
   @Inject RecipeViewModel viewModel;
   @Inject MainActivity mainActivity;
   @Inject DetailAdapter adapter;
+  @Inject DividerItemDecoration divider;
+  @Inject CompositeDisposable disposable;
 
   private DetailFragmentComponent detailFragmentComponent;
-  private Disposable disposable;
 
   public DetailFragment() {
     // Required empty public constructor
@@ -47,6 +48,7 @@ public class DetailFragment extends Fragment {
   @Override
   public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                            Bundle savedInstanceState) {
+    mainActivity.showBackInActionBar();
     View view = inflater.inflate(R.layout.fragment_detail, container, false);
     ButterKnife.bind(this, view);
     setupFragment();
@@ -54,9 +56,15 @@ public class DetailFragment extends Fragment {
   }
 
   @Override
+  public void onResume() {
+    super.onResume();
+    showIntroByDefault();
+  }
+
+  @Override
   public void onDestroyView() {
     super.onDestroyView();
-    if (disposable != null) {
+    if (!disposable.isDisposed()) {
       disposable.dispose();
     }
   }
@@ -70,17 +78,25 @@ public class DetailFragment extends Fragment {
   }
 
   private void setupFragment() {
-    // Show action bar back button
-    mainActivity.showBackInActionBar();
     // Setup cooking steps list
-    DividerItemDecoration divider =
-        new DividerItemDecoration(cookingSteps.getContext(), DividerItemDecoration.VERTICAL);
     cookingSteps.setLayoutManager(detailFragmentComponent.layoutManager());
-    cookingSteps.addItemDecoration(divider);
     cookingSteps.setAdapter(adapter);
-    disposable = adapter.subscribeTo(viewModel.getDetailStream()
+    cookingSteps.addItemDecoration(divider);
+    // Subscribe
+    disposable.add(adapter.subscribeTo(viewModel.getDetailStream()
         // Set activity title
-        .doOnNext(recipeDetails -> mainActivity.setTitle(recipeDetails.getName())));
-    viewModel.onDetail();
+        .doOnNext(recipeDetails -> mainActivity.setTitle(recipeDetails.getName()))));
+    disposable.add(adapter.subscribeSelection(viewModel.getDetailSelectionStream()));
+  }
+
+  /** Display intro after recipe is opened in two pane mode. */
+  private void showIntroByDefault() {
+    final boolean twoPaneMode = mainActivity.findViewById(R.id.step_fragment_container) != null;
+    if (twoPaneMode) {
+      Fragment fragment = mainActivity.getSupportFragmentManager().findFragmentById(R.id.step_fragment_container);
+      if (fragment == null && adapter.stepClickCallback != null) {
+        adapter.stepClickCallback.onClick(viewModel.getRecipePosition(), 0);
+      }
+    }
   }
 }

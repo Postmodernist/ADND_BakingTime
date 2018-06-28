@@ -61,6 +61,8 @@ public class BrowseFragment extends Fragment {
   @Override
   public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                            Bundle savedInstanceState) {
+    mainActivity.showBackInActionBar();
+    mainActivity.clearStepFragment();
     View view = inflater.inflate(R.layout.fragment_browse, container, false);
     ButterKnife.bind(this, view);
     viewModel.init();
@@ -89,9 +91,10 @@ public class BrowseFragment extends Fragment {
     // Set activity title
     mainActivity.setTitle(getString(R.string.app_name));
     // Setup refresh button
-    refreshButton.setOnClickListener(v -> viewModel.onBrowse());
+    refreshButton.setOnClickListener(v -> viewModel.emitBrowse());
     // Setup recipes list
-    recipeList.setLayoutManager(browseFragmentComponent.layoutManager());
+    final RecyclerView.LayoutManager layoutManager = browseFragmentComponent.layoutManager();
+    recipeList.setLayoutManager(layoutManager);
     recipeList.setAdapter(adapter);
     // Subscribe to recipes stream
     if (adapter.getItemCount() == 0) {

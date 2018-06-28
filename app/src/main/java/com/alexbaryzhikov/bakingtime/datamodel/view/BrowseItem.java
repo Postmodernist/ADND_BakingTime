@@ -2,7 +2,7 @@ package com.alexbaryzhikov.bakingtime.datamodel.view;
 
 import android.support.annotation.NonNull;
 
-public class BrowseItem {
+public final class BrowseItem {
 
   @NonNull private final String name;
   @NonNull private final String ingredients;

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
@@ -10,6 +11,16 @@
         android:layout_height="wrap_content"
         android:background="?android:attr/selectableItemBackground"
         android:padding="@dimen/app_margin"
+        android:textColor="@android:color/black"
         tools:text="1. Preheat the oven to 350°F. Butter a 9 inch deep dish pie pan." />
 
-</FrameLayout>
+    <View
+        android:id="@+id/selection_mark"
+        android:layout_width="@dimen/app_spacing_tiny"
+        android:layout_height="0dp"
+        android:background="@color/colorAccent"
+        app:layout_constraintBottom_toBottomOf="@id/step_description"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/step_description" />
+
+</android.support.constraint.ConstraintLayout>

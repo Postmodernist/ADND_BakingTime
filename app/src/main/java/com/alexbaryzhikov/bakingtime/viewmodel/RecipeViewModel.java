@@ -44,6 +44,7 @@ public class RecipeViewModel extends ViewModel {
   private final BehaviorSubject<StepRequest> stepSubject = BehaviorSubject.create();
 
   private boolean initialized = false;
+  private boolean phone;
   private List<Recipe> recipes;
   private DetailRequest detailRequest;
   private StepRequest stepRequest;
@@ -59,7 +60,8 @@ public class RecipeViewModel extends ViewModel {
       return;
     }
     initialized = true;
-    onBrowse();
+    phone = application.getResources().getConfiguration().smallestScreenWidthDp < 600;
+    emitBrowse();
   }
 
   /** Stream for browse fragment */
@@ -74,50 +76,62 @@ public class RecipeViewModel extends ViewModel {
                 .doOnNext(this::cacheRecipes)
                 .map(this::toNetworkResource)
                 .startWith(LOADING_NETWORK_RESOURCE))
-        .doOnNext(listNetworkResource -> idlingResource.setIdleState(listNetworkResource.getStatus() != NetworkResource.Status.LOADING))
+        .doOnNext(networkResource ->
+            idlingResource.setIdleState(networkResource.getStatus() != NetworkResource.Status.LOADING))
         .observeOn(AndroidSchedulers.mainThread());
   }
 
-  /** Trigger for browse stream */
-  public void onBrowse() {
+  /** Trigger browse request */
+  public void emitBrowse() {
     browseSubject.onNext(DEFAULT_BROWSE_REQUEST);
   }
 
   /** Stream for detail fragment */
   public Observable<DetailItem> getDetailStream() {
     return detailSubject
+        .doOnNext(request -> detailRequest = request)
         .map(detailRequest -> getRecipeDetails(detailRequest.getPosition()));
   }
 
-  /** Setup detail request */
-  public void setDetail(int position) {
-    detailRequest = new DetailRequest(position);
+  /** Trigger detail request */
+  public void emitDetail(int position) {
+    detailSubject.onNext(new DetailRequest(position));
   }
 
-  /** Trigger for detail stream */
-  public void onDetail() {
-    detailSubject.onNext(detailRequest);
+  /** Stream for detail item selection */
+  public Observable<Integer> getDetailSelectionStream() {
+    return stepSubject
+        .skip(phone ? 0 : 1)
+        .map(StepRequest::getStepPosition);
   }
 
   /** Stream for step fragment */
   public Observable<StepItem> getStepStream() {
     return stepSubject
+        .doOnNext(request -> stepRequest = request)
         .map(stepRequest -> getStepDetails(stepRequest.getRecipePosition(), stepRequest.getStepPosition()));
   }
 
-  /** Set step request */
-  public void setStep(int recipePosition, int stepPosition) {
-    stepRequest = new StepRequest(recipePosition, stepPosition);
+  /** Trigger step request */
+  public void emitStep(int recipePosition, int stepPosition) {
+    stepSubject.onNext(new StepRequest(recipePosition, stepPosition));
   }
 
-  /** Trigger for step stream */
-  public void onStep(int direction) {
-    if (direction > 0) {
-      stepRequest = stepRequest.next();
-    } else if (direction < 0) {
-      stepRequest = stepRequest.prev();
+  /** Trigger step request */
+  public void emitNextStep() {
+    stepSubject.onNext(stepRequest.next());
+  }
+
+  /** Trigger step request */
+  public void emitPrevStep() {
+    stepSubject.onNext(stepRequest.prev());
+  }
+
+  public int getRecipePosition() {
+    if (detailRequest == null) {
+      return 0;
     }
-    stepSubject.onNext(stepRequest);
+    return detailRequest.getPosition();
   }
 
   private void cacheRecipes(Result<List<Recipe>> listResult) {
@@ -173,11 +187,11 @@ public class RecipeViewModel extends ViewModel {
 
   private DetailItem getRecipeDetails(int position) {
     if (recipes == null) {
-      throw new IllegalStateException("View model is not initialized");
+      throw new IllegalStateException("Cache is not initialized");
     }
     Recipe recipe = recipes.get(position);
     if (recipe == null) {
-      throw new AssertionError("Recipe " + position + " is null");
+      throw new AssertionError("Cache item " + position + " is null");
     }
     final String ingredients = buildIngredientsSummary(application, recipe.ingredients);
     final List<String> steps = buildSteps(application, recipe.steps);
@@ -198,6 +212,6 @@ public class RecipeViewModel extends ViewModel {
     }
     final boolean first = stepPosition == 0;
     final boolean last = stepPosition == recipe.steps.size() - 1;
-    return new StepItem(step.description, step.videoURL, first, last);
+    return new StepItem(recipe.name, step.description, step.videoURL, first, last);
   }
 }
