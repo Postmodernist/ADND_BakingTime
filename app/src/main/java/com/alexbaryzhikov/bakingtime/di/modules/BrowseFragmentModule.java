@@ -2,7 +2,6 @@ package com.alexbaryzhikov.bakingtime.di.modules;
 
 import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.ViewModelProviders;
-import android.content.Context;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView.LayoutManager;
 import android.support.v7.widget.StaggeredGridLayoutManager;
@@ -22,7 +21,7 @@ import dagger.Provides;
 public class BrowseFragmentModule {
 
   @Provides
-  LayoutManager provideLayoutManager(Context context) {
+  LayoutManager provideLayoutManager(MainActivity context) {
     boolean phone = context.getResources().getConfiguration().smallestScreenWidthDp < 600;
     return phone ? new LinearLayoutManager(context) :
         new StaggeredGridLayoutManager(3, StaggeredGridLayoutManager.VERTICAL);
@@ -49,15 +48,5 @@ public class BrowseFragmentModule {
   @Provides
   DetailFragment provideDetailFragment() {
     return new DetailFragment();
-  }
-
-  @Provides
-  Context provideContext(BrowseFragment fragment) {
-    return fragment.getContext();
-  }
-
-  @Provides
-  MainActivity provideMainActivity(BrowseFragment fragment) {
-    return (MainActivity) fragment.getActivity();
   }
 }

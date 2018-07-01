@@ -9,7 +9,7 @@ import com.alexbaryzhikov.bakingtime.ui.DetailFragment;
 import dagger.BindsInstance;
 import dagger.Component;
 
-@Component(modules = DetailFragmentModule.class, dependencies = ApplicationComponent.class)
+@Component(modules = DetailFragmentModule.class, dependencies = MainActivityComponent.class)
 @DetailFragmentScope
 public interface DetailFragmentComponent {
 
@@ -20,7 +20,7 @@ public interface DetailFragmentComponent {
   @Component.Builder
   interface Builder {
 
-    Builder appComponent(ApplicationComponent component);
+    Builder mainActivityComponent(MainActivityComponent component);
 
     @BindsInstance
     Builder fragment(DetailFragment fragment);

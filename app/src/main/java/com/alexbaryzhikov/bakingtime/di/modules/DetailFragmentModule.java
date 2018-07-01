@@ -2,7 +2,6 @@ package com.alexbaryzhikov.bakingtime.di.modules;
 
 import android.arch.lifecycle.Lifecycle;
 import android.arch.lifecycle.ViewModelProviders;
-import android.content.Context;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView.LayoutManager;
@@ -23,7 +22,7 @@ import io.reactivex.disposables.CompositeDisposable;
 public class DetailFragmentModule {
 
   @Provides
-  LayoutManager provideLayoutManager(Context context) {
+  LayoutManager provideLayoutManager(MainActivity context) {
     return new LinearLayoutManager(context);
   }
 
@@ -41,7 +40,7 @@ public class DetailFragmentModule {
 
   @Provides
   @DetailFragmentScope
-  DividerItemDecoration provideDividerItemDecoration(Context context) {
+  DividerItemDecoration provideDividerItemDecoration(MainActivity context) {
     return new DividerItemDecoration(context, DividerItemDecoration.VERTICAL);
   }
 
@@ -60,15 +59,5 @@ public class DetailFragmentModule {
   @Provides
   StepFragment provideStepFragment() {
     return new StepFragment();
-  }
-
-  @Provides
-  Context provideContext(DetailFragment fragment) {
-    return fragment.getContext();
-  }
-
-  @Provides
-  MainActivity provideMainActivity(DetailFragment fragment) {
-    return (MainActivity) fragment.getActivity();
   }
 }

@@ -17,6 +17,7 @@ import com.alexbaryzhikov.bakingtime.R;
 import com.alexbaryzhikov.bakingtime.datamodel.view.BrowseItem;
 import com.alexbaryzhikov.bakingtime.di.components.BrowseFragmentComponent;
 import com.alexbaryzhikov.bakingtime.di.components.DaggerBrowseFragmentComponent;
+import com.alexbaryzhikov.bakingtime.di.components.MainActivityComponent;
 import com.alexbaryzhikov.bakingtime.utils.NetworkResource;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
 
@@ -79,9 +80,11 @@ public class BrowseFragment extends Fragment {
   }
 
   private void setupDagger() {
-    assert getContext() != null;
+    if (getActivity() == null) {
+      throw new AssertionError();
+    }
     browseFragmentComponent = DaggerBrowseFragmentComponent.builder()
-        .appComponent(BakingApp.getAppComponent(getContext()))
+        .mainActivityComponent(((MainActivity) getActivity()).getMainActivityComponent())
         .fragment(this)
         .build();
     browseFragmentComponent.inject(this);

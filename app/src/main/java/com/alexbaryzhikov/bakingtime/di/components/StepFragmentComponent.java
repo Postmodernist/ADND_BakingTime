@@ -7,7 +7,7 @@ import com.alexbaryzhikov.bakingtime.ui.StepFragment;
 import dagger.BindsInstance;
 import dagger.Component;
 
-@Component(modules = StepFragmentModule.class, dependencies = ApplicationComponent.class)
+@Component(modules = StepFragmentModule.class, dependencies = MainActivityComponent.class)
 @StepFragmentScope
 public interface StepFragmentComponent {
 
@@ -16,7 +16,7 @@ public interface StepFragmentComponent {
   @Component.Builder
   interface Builder {
 
-    Builder appComponent(ApplicationComponent component);
+    Builder mainActivityComponent(MainActivityComponent component);
 
     @BindsInstance
     Builder fragment(StepFragment fragment);

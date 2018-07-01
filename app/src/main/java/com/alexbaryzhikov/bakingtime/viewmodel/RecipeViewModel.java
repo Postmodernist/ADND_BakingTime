@@ -147,10 +147,9 @@ public class RecipeViewModel extends ViewModel {
   private NetworkResource<List<BrowseItem>> toNetworkResource(@NonNull Result<List<Recipe>> result) {
     // Handle IO errors and propagate others
     if (result.isError()) {
-      if (IOException.class.isInstance(result.error())) {
-        return ERROR_NETWORK_RESOURCE;
+      if (!IOException.class.isInstance(result.error())) {
+        RxJavaPlugins.onError(result.error());
       }
-      RxJavaPlugins.onError(result.error());
       return ERROR_NETWORK_RESOURCE;
     }
 

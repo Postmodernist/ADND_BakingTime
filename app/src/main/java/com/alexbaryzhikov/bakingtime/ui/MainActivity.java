@@ -5,14 +5,21 @@ import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 
+import com.alexbaryzhikov.bakingtime.BakingApp;
 import com.alexbaryzhikov.bakingtime.R;
+import com.alexbaryzhikov.bakingtime.di.components.DaggerMainActivityComponent;
+import com.alexbaryzhikov.bakingtime.di.components.MainActivityComponent;
 
 public class MainActivity extends AppCompatActivity {
 
+  private MainActivityComponent mainActivityComponent;
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
+    setupDagger();
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
+
     // Add browse fragment if this is a first creation
     if (savedInstanceState == null) {
       BrowseFragment fragment = new BrowseFragment();
@@ -72,5 +79,16 @@ public class MainActivity extends AppCompatActivity {
             .commit();
       }
     }
+  }
+
+  public MainActivityComponent getMainActivityComponent() {
+    return mainActivityComponent;
+  }
+
+  private void setupDagger() {
+    mainActivityComponent = DaggerMainActivityComponent.builder()
+        .appComponent(BakingApp.getAppComponent(this))
+        .activity(this)
+        .build();
   }
 }

@@ -3,12 +3,14 @@ package com.alexbaryzhikov.bakingtime.utils;
 import android.support.annotation.Nullable;
 import android.support.test.espresso.IdlingResource;
 
+import com.alexbaryzhikov.bakingtime.di.scopes.MainActivityScope;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-@Singleton
+@MainActivityScope
 public class SimpleIdlingResource implements IdlingResource {
 
   @Nullable private volatile ResourceCallback callback;

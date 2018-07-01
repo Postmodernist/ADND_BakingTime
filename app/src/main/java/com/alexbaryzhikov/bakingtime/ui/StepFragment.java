@@ -84,8 +84,11 @@ public class StepFragment extends Fragment {
   }
 
   private void setupDagger(Context context) {
+    if (getActivity() == null) {
+      throw new AssertionError();
+    }
     DaggerStepFragmentComponent.builder()
-        .appComponent(BakingApp.getAppComponent(context))
+        .mainActivityComponent(((MainActivity) getActivity()).getMainActivityComponent())
         .fragment(this)
         .build()
         .inject(this);

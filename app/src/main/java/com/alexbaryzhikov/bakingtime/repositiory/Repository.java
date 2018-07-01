@@ -2,6 +2,7 @@ package com.alexbaryzhikov.bakingtime.repositiory;
 
 import com.alexbaryzhikov.bakingtime.api.RecipeApi;
 import com.alexbaryzhikov.bakingtime.datamodel.response.Recipe;
+import com.alexbaryzhikov.bakingtime.di.scopes.MainActivityScope;
 
 import java.util.List;
 
@@ -11,7 +12,7 @@ import javax.inject.Singleton;
 import io.reactivex.Observable;
 import retrofit2.adapter.rxjava2.Result;
 
-@Singleton
+@MainActivityScope
 public class Repository {
 
   @SuppressWarnings("WeakerAccess")

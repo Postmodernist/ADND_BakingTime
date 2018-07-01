@@ -1,11 +1,9 @@
 package com.alexbaryzhikov.bakingtime.di.modules;
 
 import android.arch.lifecycle.ViewModelProviders;
-import android.content.Context;
 
 import com.alexbaryzhikov.bakingtime.di.scopes.StepFragmentScope;
 import com.alexbaryzhikov.bakingtime.ui.MainActivity;
-import com.alexbaryzhikov.bakingtime.ui.StepFragment;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModelFactory;
 import com.google.android.exoplayer2.ExoPlayerFactory;
@@ -35,7 +33,7 @@ public class StepFragmentModule {
 
   @Provides
   @StepFragmentScope
-  SimpleExoPlayer provideSimpleExoPlayer(Context context, TrackSelector trackSelector) {
+  SimpleExoPlayer provideSimpleExoPlayer(MainActivity context, TrackSelector trackSelector) {
     return ExoPlayerFactory.newSimpleInstance(context, trackSelector);
   }
 
@@ -66,17 +64,8 @@ public class StepFragmentModule {
   @Provides
   @StepFragmentScope
   @Named("UserAgent")
-  String provideUserAgent(Context context) {
+  String provideUserAgent(MainActivity context) {
     return Util.getUserAgent(context, "BakingTime");
   }
 
-  @Provides
-  MainActivity provideMainActivity(StepFragment fragment) {
-    return (MainActivity) fragment.getActivity();
-  }
-
-  @Provides
-  Context provideContext(StepFragment fragment) {
-    return fragment.getContext();
-  }
 }

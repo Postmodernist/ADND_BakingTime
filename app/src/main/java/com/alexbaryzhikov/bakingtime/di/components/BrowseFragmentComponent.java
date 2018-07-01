@@ -9,7 +9,7 @@ import com.alexbaryzhikov.bakingtime.ui.BrowseFragment;
 import dagger.BindsInstance;
 import dagger.Component;
 
-@Component(modules = BrowseFragmentModule.class, dependencies = ApplicationComponent.class)
+@Component(modules = BrowseFragmentModule.class, dependencies = MainActivityComponent.class)
 @BrowseFragmentScope
 public interface BrowseFragmentComponent {
 
@@ -20,7 +20,7 @@ public interface BrowseFragmentComponent {
   @Component.Builder
   interface Builder {
 
-    Builder appComponent(ApplicationComponent component);
+    Builder mainActivityComponent(MainActivityComponent component);
 
     @BindsInstance
     Builder fragment(BrowseFragment fragment);

@@ -2,22 +2,16 @@ package com.alexbaryzhikov.bakingtime.di.components;
 
 import android.app.Application;
 
-import com.alexbaryzhikov.bakingtime.di.modules.ApplicationModule;
-import com.alexbaryzhikov.bakingtime.utils.SimpleIdlingResource;
-import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModelFactory;
-
 import javax.inject.Singleton;
 
 import dagger.BindsInstance;
 import dagger.Component;
 
-@Component(modules = ApplicationModule.class)
+@Component
 @Singleton
 public interface ApplicationComponent {
 
-  RecipeViewModelFactory factory();
-
-  SimpleIdlingResource idlingResource();
+  Application application();
 
   @Component.Builder
   interface Builder {

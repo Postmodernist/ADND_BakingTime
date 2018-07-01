@@ -70,8 +70,11 @@ public class DetailFragment extends Fragment {
   }
 
   private void setupDagger(Context context) {
+    if (getActivity() == null) {
+      throw new AssertionError();
+    }
     detailFragmentComponent = DaggerDetailFragmentComponent.builder()
-        .appComponent(BakingApp.getAppComponent(context))
+        .mainActivityComponent(((MainActivity) getActivity()).getMainActivityComponent())
         .fragment(this)
         .build();
     detailFragmentComponent.inject(this);

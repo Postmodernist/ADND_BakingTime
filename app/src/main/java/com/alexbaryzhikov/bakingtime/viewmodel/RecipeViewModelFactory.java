@@ -5,13 +5,14 @@ import android.arch.lifecycle.ViewModel;
 import android.arch.lifecycle.ViewModelProvider;
 import android.support.annotation.NonNull;
 
+import com.alexbaryzhikov.bakingtime.di.scopes.MainActivityScope;
 import com.alexbaryzhikov.bakingtime.repositiory.Repository;
 import com.alexbaryzhikov.bakingtime.utils.SimpleIdlingResource;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-@Singleton
+@MainActivityScope
 public class RecipeViewModelFactory extends ViewModelProvider.NewInstanceFactory {
 
   @Inject Application application;

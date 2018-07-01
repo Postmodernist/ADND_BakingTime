@@ -62,6 +62,9 @@ public class RecyclerViewMatcher {
         if (targetViewId == -1) {
           return view == childView;
         } else {
+          if (childView == null) {
+            throw new IllegalStateException("Could not acquire child view");
+          }
           View targetView = childView.findViewById(targetViewId);
           return view == targetView;
         }
