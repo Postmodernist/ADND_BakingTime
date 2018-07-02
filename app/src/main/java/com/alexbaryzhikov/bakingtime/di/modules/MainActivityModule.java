@@ -1,7 +1,5 @@
 package com.alexbaryzhikov.bakingtime.di.modules;
 
-import android.util.Log;
-
 import com.alexbaryzhikov.bakingtime.api.RecipeApi;
 import com.alexbaryzhikov.bakingtime.di.scopes.MainActivityScope;
 
@@ -29,7 +27,6 @@ public class MainActivityModule {
   @Provides
   @MainActivityScope
   Retrofit provideRetrofit(@Named("IoScheduler") Scheduler scheduler) {
-    Log.d("TAG", "provideRetrofit: BASE_URL = " + BASE_URL);
     return new Retrofit.Builder()
         .baseUrl(BASE_URL)
         .addConverterFactory(GsonConverterFactory.create())

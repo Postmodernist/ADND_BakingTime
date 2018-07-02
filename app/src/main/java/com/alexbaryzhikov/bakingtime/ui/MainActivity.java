@@ -12,6 +12,8 @@ import com.alexbaryzhikov.bakingtime.di.components.MainActivityComponent;
 
 public class MainActivity extends AppCompatActivity {
 
+  public static final String EXTRA_RECIPE_ID = "RecipeId";
+
   private MainActivityComponent mainActivityComponent;
 
   @Override
