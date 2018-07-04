@@ -2,7 +2,6 @@ package com.alexbaryzhikov.bakingtime.viewmodel;
 
 import android.app.Application;
 import android.arch.lifecycle.ViewModel;
-import android.support.annotation.NonNull;
 
 import com.alexbaryzhikov.bakingtime.datamodel.response.Recipe;
 import com.alexbaryzhikov.bakingtime.datamodel.response.Step;
@@ -11,16 +10,15 @@ import com.alexbaryzhikov.bakingtime.datamodel.view.DetailItem;
 import com.alexbaryzhikov.bakingtime.datamodel.view.StepItem;
 import com.alexbaryzhikov.bakingtime.repositiory.Repository;
 import com.alexbaryzhikov.bakingtime.utils.NetworkResource;
+import com.alexbaryzhikov.bakingtime.utils.RecipeUtils;
 import com.alexbaryzhikov.bakingtime.utils.SimpleIdlingResource;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
-import io.reactivex.plugins.RxJavaPlugins;
 import io.reactivex.subjects.BehaviorSubject;
 import retrofit2.Response;
 import retrofit2.adapter.rxjava2.Result;
@@ -32,8 +30,6 @@ public class RecipeViewModel extends ViewModel {
 
   private static final NetworkResource<List<BrowseItem>> LOADING_NETWORK_RESOURCE =
       NetworkResource.loading(Collections.emptyList());
-  private static final NetworkResource<List<BrowseItem>> ERROR_NETWORK_RESOURCE =
-      NetworkResource.error(Collections.emptyList());
   private static final BrowseRequest DEFAULT_BROWSE_REQUEST = new BrowseRequest();
 
   private final Application application;
@@ -74,7 +70,7 @@ public class RecipeViewModel extends ViewModel {
             :
             repository.getRecipes()
                 .doOnNext(this::cacheRecipes)
-                .map(this::toNetworkResource)
+                .map(listResult -> RecipeUtils.toNetworkResource(listResult, this::toBrowseItems))
                 .startWith(LOADING_NETWORK_RESOURCE))
         .doOnNext(networkResource ->
             idlingResource.setIdleState(networkResource.getStatus() != NetworkResource.Status.LOADING))
@@ -142,36 +138,6 @@ public class RecipeViewModel extends ViewModel {
     if (response != null) {
       recipes = response.body();
     }
-  }
-
-  private NetworkResource<List<BrowseItem>> toNetworkResource(@NonNull Result<List<Recipe>> result) {
-    // Handle IO errors and propagate others
-    if (result.isError()) {
-      if (!IOException.class.isInstance(result.error())) {
-        RxJavaPlugins.onError(result.error());
-      }
-      return ERROR_NETWORK_RESOURCE;
-    }
-
-    // Get response
-    final Response<List<Recipe>> response = result.response();
-    if (response == null) {
-      // Should never happen. Response can be null only if result.isError() is true
-      RxJavaPlugins.onError(new AssertionError("Response is null"));
-      return ERROR_NETWORK_RESOURCE;
-    }
-
-    // Get response body
-    final List<Recipe> recipes = response.body();
-    // Return error if response is not OK (legit, we don't own the server)
-    // or response body is null (should never happen)
-    if (!response.isSuccessful() || recipes == null) {
-      return ERROR_NETWORK_RESOURCE;
-    }
-
-    // Transform to BrowseItems and wrap in NetworkResource
-    List<BrowseItem> browseItems = toBrowseItems(recipes);
-    return NetworkResource.success(browseItems);
   }
 
   private List<BrowseItem> toBrowseItems(List<Recipe> recipes) {

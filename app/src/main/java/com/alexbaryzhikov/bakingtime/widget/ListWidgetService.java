@@ -7,6 +7,10 @@ public class ListWidgetService extends RemoteViewsService {
 
   @Override
   public RemoteViewsFactory onGetViewFactory(Intent intent) {
-    return new ListRemoteViewsFactory(this.getApplicationContext());
+    final String appWidgetId = intent.getData() != null ? intent.getData().getFragment() : "";
+    if (!appWidgetId.isEmpty()) {
+      return new ListRemoteViewsFactory(this.getApplicationContext(), Integer.valueOf(appWidgetId));
+    }
+    throw new IllegalStateException("Expected AppWidgetId");
   }
 }

@@ -2,18 +2,24 @@ package com.alexbaryzhikov.bakingtime.widget;
 
 import android.content.Context;
 import android.content.Intent;
+import android.support.annotation.NonNull;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
 
 import com.alexbaryzhikov.bakingtime.R;
 import com.alexbaryzhikov.bakingtime.ui.MainActivity;
 
+import static com.alexbaryzhikov.bakingtime.widget.WidgetConfigureActivity.loadIdPref;
+import static com.alexbaryzhikov.bakingtime.widget.WidgetConfigureActivity.loadIngredientsPref;
+
 public class ListRemoteViewsFactory implements RemoteViewsService.RemoteViewsFactory {
 
   private final Context context;
+  private final int appWidgetId;
 
-  ListRemoteViewsFactory(Context context) {
+  ListRemoteViewsFactory(@NonNull Context context, final int appWidgetId) {
     this.context = context;
+    this.appWidgetId = appWidgetId;
   }
 
   @Override
@@ -35,15 +41,15 @@ public class ListRemoteViewsFactory implements RemoteViewsService.RemoteViewsFac
 
   @Override
   public RemoteViews getViewAt(int position) {
-    CharSequence ingredients = context.getString(R.string.appwidget_ingredients);
-    RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_item);
+    // Set ingredients
+    CharSequence ingredients = loadIngredientsPref(context, appWidgetId);
+    RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.recipe_widget_item);
     views.setTextViewText(R.id.appwidget_ingredients, ingredients);
-
-    // TODO On click open recipe detail fragment
+    // Fill in onClick intent
+    int recipeId = loadIdPref(context, appWidgetId);
     Intent fillInIntent = new Intent();
-    fillInIntent.putExtra(MainActivity.EXTRA_RECIPE_ID, 0);
+    fillInIntent.putExtra(MainActivity.KEY_RECIPE_ID, recipeId);
     views.setOnClickFillInIntent(R.id.appwidget_item_container, fillInIntent);
-
     return views;
   }
 

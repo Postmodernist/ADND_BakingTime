@@ -1,9 +1,11 @@
 package com.alexbaryzhikov.bakingtime.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 
 import com.alexbaryzhikov.bakingtime.BakingApp;
 import com.alexbaryzhikov.bakingtime.R;
@@ -12,7 +14,8 @@ import com.alexbaryzhikov.bakingtime.di.components.MainActivityComponent;
 
 public class MainActivity extends AppCompatActivity {
 
-  public static final String EXTRA_RECIPE_ID = "RecipeId";
+  public static final String KEY_RECIPE_ID = "RecipeId";
+  public static final int INVALID_RECIPE_ID = -1;
 
   private MainActivityComponent mainActivityComponent;
 
@@ -25,6 +28,17 @@ public class MainActivity extends AppCompatActivity {
     // Add browse fragment if this is a first creation
     if (savedInstanceState == null) {
       BrowseFragment fragment = new BrowseFragment();
+
+      // Set arguments
+      Intent intent = getIntent();
+      if (intent != null && intent.hasExtra(KEY_RECIPE_ID)) {
+        Log.d("TAG", "onCreate: intent with recipe id received");
+        final int recipeId = intent.getIntExtra(KEY_RECIPE_ID, INVALID_RECIPE_ID);
+        Bundle args = new Bundle();
+        args.putInt(KEY_RECIPE_ID, recipeId);
+        fragment.setArguments(args);
+      }
+
       getSupportFragmentManager().beginTransaction()
           .add(R.id.fragment_container, fragment)
           .commit();

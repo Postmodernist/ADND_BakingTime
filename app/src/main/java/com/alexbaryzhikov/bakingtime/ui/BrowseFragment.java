@@ -12,13 +12,12 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ProgressBar;
 
-import com.alexbaryzhikov.bakingtime.BakingApp;
 import com.alexbaryzhikov.bakingtime.R;
 import com.alexbaryzhikov.bakingtime.datamodel.view.BrowseItem;
 import com.alexbaryzhikov.bakingtime.di.components.BrowseFragmentComponent;
 import com.alexbaryzhikov.bakingtime.di.components.DaggerBrowseFragmentComponent;
-import com.alexbaryzhikov.bakingtime.di.components.MainActivityComponent;
 import com.alexbaryzhikov.bakingtime.utils.NetworkResource;
+import com.alexbaryzhikov.bakingtime.utils.RecipeUtils;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
 
 import java.util.List;
@@ -34,7 +33,7 @@ public class BrowseFragment extends Fragment {
 
   @BindView(R.id.recipe_list) RecyclerView recipeList;
   @BindView(R.id.loading_indicator) ProgressBar loadingIndicator;
-  @BindView(R.id.error_viewgroup) ViewGroup errorViewGroup;
+  @BindView(R.id.error_view_group) ViewGroup errorViewGroup;
   @BindView(R.id.refresh_button) Button refreshButton;
 
   @Inject BrowseAdapter adapter;
@@ -99,12 +98,23 @@ public class BrowseFragment extends Fragment {
     final RecyclerView.LayoutManager layoutManager = browseFragmentComponent.layoutManager();
     recipeList.setLayoutManager(layoutManager);
     recipeList.setAdapter(adapter);
+    // Get arguments
+    Bundle args = getArguments();
+    setArguments(null);
+    final int recipeId = args != null && args.containsKey(MainActivity.KEY_RECIPE_ID) ?
+        args.getInt(MainActivity.KEY_RECIPE_ID) : MainActivity.INVALID_RECIPE_ID;
     // Subscribe to recipes stream
-    if (adapter.getItemCount() == 0) {
-      disposable = adapter.subscribeTo(viewModel.getBrowseStream()
-          .doOnNext(this::renderNetworkStatus)
-          .map(this::stripNetworkStatus));
-    }
+    disposable = viewModel.getBrowseStream()
+        .doOnNext(this::renderNetworkStatus)
+        .filter(networkResource -> networkResource.getStatus() == NetworkResource.Status.SUCCESS)
+        .map(RecipeUtils::stripNetworkStatus)
+        .subscribe(browseItems -> {
+          adapter.setBrowseItems(browseItems);
+          // Transition to recipe details
+          if (adapter.clickCallback != null && recipeId != MainActivity.INVALID_RECIPE_ID) {
+            adapter.clickCallback.onClick(recipeId);
+          }
+        }, throwable -> { throw new RuntimeException(throwable); });
   }
 
   private void renderNetworkStatus(NetworkResource networkResource) {
@@ -125,13 +135,5 @@ public class BrowseFragment extends Fragment {
       default:
         throw new IllegalArgumentException("Unknown status: " + status.name());
     }
-  }
-
-  private List<BrowseItem> stripNetworkStatus(NetworkResource<List<BrowseItem>> networkResource) {
-    List<BrowseItem> recipeItems = networkResource.getData();
-    if (recipeItems == null) {
-      throw new AssertionError("NetworkResource with null data");
-    }
-    return recipeItems;
   }
 }

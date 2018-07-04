@@ -12,14 +12,12 @@ import javax.inject.Singleton;
 import io.reactivex.Observable;
 import retrofit2.adapter.rxjava2.Result;
 
-@MainActivityScope
 public class Repository {
 
-  @SuppressWarnings("WeakerAccess")
-  @Inject RecipeApi recipeApi;
+  private final RecipeApi recipeApi;
 
-  @Inject
-  Repository() {
+  public Repository(RecipeApi recipeApi) {
+    this.recipeApi = recipeApi;
   }
 
   public Observable<Result<List<Recipe>>> getRecipes() {

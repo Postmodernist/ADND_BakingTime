@@ -5,32 +5,37 @@ import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
+import android.support.annotation.NonNull;
 import android.support.v4.app.TaskStackBuilder;
 import android.widget.RemoteViews;
 
 import com.alexbaryzhikov.bakingtime.R;
 import com.alexbaryzhikov.bakingtime.ui.MainActivity;
 
+import static com.alexbaryzhikov.bakingtime.widget.WidgetConfigureActivity.deletePrefs;
+import static com.alexbaryzhikov.bakingtime.widget.WidgetConfigureActivity.loadNamePref;
+
 /**
  * Implementation of App Widget functionality.
  */
 public class RecipeWidgetProvider extends AppWidgetProvider {
 
-  static void updateAppWidget(Context context, AppWidgetManager appWidgetManager,
-                              int appWidgetId) {
-
-    CharSequence widgetHeader = "Nutella Pie";
+  public static void updateAppWidget(@NonNull Context context, @NonNull AppWidgetManager appWidgetManager,
+                                     final int appWidgetId, @NonNull final CharSequence name) {
     // Construct the RemoteViews object
     RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.recipe_widget);
 
     // Set widget header text
-    views.setTextViewText(R.id.appwidget_header, widgetHeader);
+    views.setTextViewText(R.id.appwidget_header, name);
 
     // Set ListWidgetService intent to act as the adapter for ListView
     Intent adapterIntent = new Intent(context, ListWidgetService.class);
+    Uri data = Uri.fromParts("widget", "app-widget-id", String.valueOf(appWidgetId));
+    adapterIntent.setData(data);
     views.setRemoteAdapter(R.id.appwidget_list, adapterIntent);
 
-    // Set MainActivity intent to launch when clicked
+    // Set list item onClick intent template
     Intent activityIntent = new Intent(context, MainActivity.class);
     PendingIntent pendingIntent = TaskStackBuilder.create(context)
         .addNextIntentWithParentStack(activityIntent)
@@ -45,8 +50,16 @@ public class RecipeWidgetProvider extends AppWidgetProvider {
   public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
     // There may be multiple widgets active, so update all of them
     for (int appWidgetId : appWidgetIds) {
-      updateAppWidget(context, appWidgetManager, appWidgetId);
+      final String name = loadNamePref(context, appWidgetId);
+      updateAppWidget(context, appWidgetManager, appWidgetId, name);
+    }
+  }
+
+  @Override
+  public void onDeleted(Context context, int[] appWidgetIds) {
+    // Delete the preferences associated with the deleted widgets
+    for (int appWidgetId : appWidgetIds) {
+      deletePrefs(context, appWidgetId);
     }
   }
 }
-

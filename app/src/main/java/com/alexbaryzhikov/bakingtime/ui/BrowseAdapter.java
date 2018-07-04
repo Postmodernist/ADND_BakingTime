@@ -18,8 +18,6 @@ import javax.inject.Inject;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-import io.reactivex.Observable;
-import io.reactivex.disposables.Disposable;
 
 @BrowseFragmentScope
 public class BrowseAdapter extends RecyclerView.Adapter<BrowseAdapter.RecipeViewHolder> {
@@ -53,12 +51,7 @@ public class BrowseAdapter extends RecyclerView.Adapter<BrowseAdapter.RecipeView
     return browseItems.size();
   }
 
-  public Disposable subscribeTo(Observable<List<BrowseItem>> observable) {
-    return observable.subscribe(this::setBrowseItems,
-        throwable -> { throw new RuntimeException(throwable); });
-  }
-
-  private void setBrowseItems(List<BrowseItem> browseItems) {
+  public void setBrowseItems(List<BrowseItem> browseItems) {
     this.browseItems = browseItems;
     notifyDataSetChanged();
   }
