@@ -15,11 +15,13 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.alexbaryzhikov.bakingtime.BakingApp;
 import com.alexbaryzhikov.bakingtime.R;
+import com.alexbaryzhikov.bakingtime.datamodel.view.PlayerState;
 import com.alexbaryzhikov.bakingtime.datamodel.view.StepItem;
 import com.alexbaryzhikov.bakingtime.di.components.DaggerStepFragmentComponent;
+import com.alexbaryzhikov.bakingtime.di.components.StepFragmentComponent;
 import com.alexbaryzhikov.bakingtime.viewmodel.RecipeViewModel;
+import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.source.ExtractorMediaSource;
 import com.google.android.exoplayer2.source.MediaSource;
@@ -44,10 +46,12 @@ public class StepFragment extends Fragment {
 
   @Inject RecipeViewModel viewModel;
   @Inject MainActivity mainActivity;
-  @Inject SimpleExoPlayer exoPlayer;
   @Inject ExtractorMediaSource.Factory extractorsFactory;
   @Inject StepPlayerEventListener playerEventListener;
 
+  private StepFragmentComponent fragmentComponent;
+  private SimpleExoPlayer exoPlayer;
+  private StepItem stepItemCache;
   private Disposable disposable;
   private int systemVisibility;
   private boolean uiHidden = false;
@@ -58,7 +62,7 @@ public class StepFragment extends Fragment {
 
   @Override
   public void onAttach(Context context) {
-    setupDagger(context);
+    setupDagger();
     super.onAttach(context);
   }
 
@@ -74,49 +78,70 @@ public class StepFragment extends Fragment {
   }
 
   @Override
+  public void onResume() {
+    super.onResume();
+    if (exoPlayer == null && stepItemCache != null) {
+      initPlayer(stepItemCache);
+    }
+  }
+
+  @Override
+  public void onPause() {
+    super.onPause();
+    releasePlayer();
+  }
+
+  @Override
+  public void onStop() {
+    super.onStop();
+    releasePlayer();
+  }
+
+  @Override
   public void onDestroyView() {
     super.onDestroyView();
     if (disposable != null) {
       disposable.dispose();
     }
     restoreSystemUi();
-    releasePlayer();
   }
 
-  private void setupDagger(Context context) {
+  private void setupDagger() {
     if (getActivity() == null) {
       throw new AssertionError();
     }
-    DaggerStepFragmentComponent.builder()
+    fragmentComponent = DaggerStepFragmentComponent.builder()
         .mainActivityComponent(((MainActivity) getActivity()).getMainActivityComponent())
         .fragment(this)
-        .build()
-        .inject(this);
+        .build();
+    fragmentComponent.inject(this);
   }
 
-  public void setupFragment() {
+  private void setupFragment() {
+    // Setup buttons
+    if (prevStep != null && nextStep != null) {
+      prevStep.setOnClickListener(v -> viewModel.emitPrevStep());
+      nextStep.setOnClickListener(v -> viewModel.emitNextStep());
+    }
+    // Find out if we're in fullscreen mode
     boolean phone = mainActivity.getResources().getConfiguration().smallestScreenWidthDp < 600;
     int orientation = mainActivity.getResources().getConfiguration().orientation;
-    boolean fullscreen = phone && orientation == ORIENTATION_LANDSCAPE;
-    if (fullscreen) {
-      // Subscribe
-      disposable = viewModel.getStepStream()
-          .doOnNext(stepItem -> mainActivity.setTitle(stepItem.getRecipeName()))
-          .subscribe(this::renderStepFullscreen);
-    } else {
-      // Setup buttons
-      if (prevStep != null && nextStep != null) {
-        prevStep.setOnClickListener(v -> viewModel.emitPrevStep());
-        nextStep.setOnClickListener(v -> viewModel.emitNextStep());
-      }
-      // Subscribe
-      disposable = viewModel.getStepStream()
-          .doOnNext(stepItem -> mainActivity.setTitle(stepItem.getRecipeName()))
-          .subscribe(this::renderStepDefault);
-    }
+    final boolean fullscreen = phone && orientation == ORIENTATION_LANDSCAPE;
+    // Subscribe
+    disposable = viewModel.getStepStream()
+        .doOnNext(stepItem -> stepItemCache = stepItem)
+        .subscribe(stepItem -> {
+          if (fullscreen) {
+            setupFullscreenUi(stepItem);
+          } else {
+            setupDefaultUi(stepItem);
+          }
+          initPlayer(stepItem);
+        });
   }
 
-  private void renderStepDefault(StepItem stepItem) {
+  private void setupDefaultUi(@NonNull StepItem stepItem) {
+    mainActivity.setTitle(stepItem.getRecipeName());
     if (instructions != null) {
       instructions.setText(stepItem.getDescription());
     }
@@ -127,42 +152,69 @@ public class StepFragment extends Fragment {
     if (TextUtils.isEmpty(stepItem.getVideoUrl())) {
       playerView.setVisibility(View.INVISIBLE);
       noVideo.setVisibility(View.VISIBLE);
-      exoPlayer.stop();
     } else {
       playerView.setVisibility(View.VISIBLE);
       noVideo.setVisibility(View.INVISIBLE);
-      initPlayer(Uri.parse(stepItem.getVideoUrl()));
     }
   }
 
-  private void renderStepFullscreen(StepItem stepItem) {
+  private void setupFullscreenUi(@NonNull StepItem stepItem) {
     hideSystemUi();
     if (TextUtils.isEmpty(stepItem.getVideoUrl())) {
       playerView.setVisibility(View.INVISIBLE);
       noVideo.setVisibility(View.VISIBLE);
-      exoPlayer.stop();
     } else {
       playerView.setVisibility(View.VISIBLE);
       noVideo.setVisibility(View.INVISIBLE);
-      initPlayer(Uri.parse(stepItem.getVideoUrl()));
     }
   }
 
-  private void initPlayer(Uri videoUri) {
+  private void initPlayer(@NonNull StepItem stepItem) {
+    // If nothing to play just stop the player and return
+    if (TextUtils.isEmpty(stepItem.getVideoUrl()) && exoPlayer != null) {
+      exoPlayer.stop();
+      return;
+    }
+    // Get player instance
+    if (exoPlayer == null) {
+      exoPlayer = fragmentComponent.simpleExoPlayer();
+    }
+    // Setup player view and event listener
     if (playerView.getPlayer() == null) {
       playerEventListener.setPlayerView(playerView);
       exoPlayer.addListener(playerEventListener);
       playerView.setPlayer(exoPlayer);
     }
-    exoPlayer.setPlayWhenReady(false);
+    // Resolve player state
+    PlayerState state = viewModel.getPlayerState();
+    if (state == null || state.getRecipeId() != stepItem.getRecipeId()
+        || state.getStepId() != stepItem.getStepId()
+        || state.getPlaybackState() == Player.STATE_ENDED) {
+      state = new PlayerState(stepItem.getRecipeId(), stepItem.getStepId(), Player.STATE_IDLE, 0, false);
+      viewModel.setPlayerState(state);
+    }
+    // Restore playback
+    exoPlayer.setPlayWhenReady(state.isPlayWhenReady());
+    Uri videoUri = Uri.parse(stepItem.getVideoUrl());
     MediaSource mediaSource = extractorsFactory.createMediaSource(videoUri);
     exoPlayer.prepare(mediaSource);
+    exoPlayer.seekTo(state.getPositionMs());
   }
 
   private void releasePlayer() {
     if (exoPlayer == null) {
       return;
     }
+    // Save player state
+    PlayerState oldState = viewModel.getPlayerState();
+    final int recipeId = oldState.getRecipeId();
+    final int stepId = oldState.getStepId();
+    final int playbackState = exoPlayer.getPlaybackState();
+    final long positionMs = exoPlayer.getCurrentPosition();
+    final boolean playWhenReady = exoPlayer.getPlayWhenReady();
+    PlayerState state = new PlayerState(recipeId, stepId, playbackState, positionMs, playWhenReady);
+    viewModel.setPlayerState(state);
+    // Release player
     exoPlayer.stop();
     exoPlayer.release();
     exoPlayer = null;

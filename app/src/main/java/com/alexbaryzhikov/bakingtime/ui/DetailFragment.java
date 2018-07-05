@@ -10,7 +10,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import com.alexbaryzhikov.bakingtime.BakingApp;
 import com.alexbaryzhikov.bakingtime.R;
 import com.alexbaryzhikov.bakingtime.di.components.DaggerDetailFragmentComponent;
 import com.alexbaryzhikov.bakingtime.di.components.DetailFragmentComponent;
@@ -21,6 +20,7 @@ import javax.inject.Inject;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
 
 /** Cooking steps */
 public class DetailFragment extends Fragment {
@@ -34,6 +34,7 @@ public class DetailFragment extends Fragment {
   @Inject CompositeDisposable disposable;
 
   private DetailFragmentComponent detailFragmentComponent;
+  private Disposable thumbnailsDisposable;
 
   public DetailFragment() {
     // Required empty public constructor
@@ -41,7 +42,7 @@ public class DetailFragment extends Fragment {
 
   @Override
   public void onAttach(Context context) {
-    setupDagger(context);
+    setupDagger();
     super.onAttach(context);
   }
 
@@ -59,6 +60,20 @@ public class DetailFragment extends Fragment {
   public void onResume() {
     super.onResume();
     showIntroByDefault();
+    // Update thumbnails
+    adapter.clearThumbnails();
+    thumbnailsDisposable = viewModel.getStepThumbnailStream()
+        .subscribe(adapter::updateThumbnail, throwable -> {
+          throw new RuntimeException(throwable);
+        });
+  }
+
+  @Override
+  public void onPause() {
+    super.onPause();
+    if (thumbnailsDisposable != null) {
+      thumbnailsDisposable.dispose();
+    }
   }
 
   @Override
@@ -69,7 +84,7 @@ public class DetailFragment extends Fragment {
     }
   }
 
-  private void setupDagger(Context context) {
+  private void setupDagger() {
     if (getActivity() == null) {
       throw new AssertionError();
     }
@@ -86,10 +101,16 @@ public class DetailFragment extends Fragment {
     cookingSteps.setAdapter(adapter);
     cookingSteps.addItemDecoration(divider);
     // Subscribe
-    disposable.add(adapter.subscribeTo(viewModel.getDetailStream()
+    disposable.add(viewModel.getDetailStream()
         // Set activity title
-        .doOnNext(recipeDetails -> mainActivity.setTitle(recipeDetails.getName()))));
-    disposable.add(adapter.subscribeSelection(viewModel.getDetailSelectionStream()));
+        .doOnNext(recipeDetails -> mainActivity.setTitle(recipeDetails.getName()))
+        .subscribe(adapter::setDetailItem, throwable -> {
+          throw new RuntimeException(throwable);
+        }));
+    disposable.add(viewModel.getDetailSelectionStream()
+        .subscribe(adapter::updateSelection, throwable -> {
+          throw new RuntimeException(throwable);
+        }));
   }
 
   /** Display intro after recipe is opened in two pane mode. */

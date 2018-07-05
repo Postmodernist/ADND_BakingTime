@@ -1,13 +1,17 @@
 package com.alexbaryzhikov.bakingtime.viewmodel;
 
+import android.annotation.SuppressLint;
 import android.app.Application;
 import android.arch.lifecycle.ViewModel;
+import android.graphics.drawable.Drawable;
 
 import com.alexbaryzhikov.bakingtime.datamodel.response.Recipe;
 import com.alexbaryzhikov.bakingtime.datamodel.response.Step;
 import com.alexbaryzhikov.bakingtime.datamodel.view.BrowseItem;
 import com.alexbaryzhikov.bakingtime.datamodel.view.DetailItem;
+import com.alexbaryzhikov.bakingtime.datamodel.view.PlayerState;
 import com.alexbaryzhikov.bakingtime.datamodel.view.StepItem;
+import com.alexbaryzhikov.bakingtime.datamodel.view.StepThumbnail;
 import com.alexbaryzhikov.bakingtime.repositiory.Repository;
 import com.alexbaryzhikov.bakingtime.utils.NetworkResource;
 import com.alexbaryzhikov.bakingtime.utils.RecipeUtils;
@@ -15,16 +19,20 @@ import com.alexbaryzhikov.bakingtime.utils.SimpleIdlingResource;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
 import io.reactivex.subjects.BehaviorSubject;
 import retrofit2.Response;
 import retrofit2.adapter.rxjava2.Result;
 
+import static com.alexbaryzhikov.bakingtime.utils.RecipeUtils.buildDescriptions;
 import static com.alexbaryzhikov.bakingtime.utils.RecipeUtils.buildIngredientsSummary;
-import static com.alexbaryzhikov.bakingtime.utils.RecipeUtils.buildSteps;
 
 public class RecipeViewModel extends ViewModel {
 
@@ -41,9 +49,12 @@ public class RecipeViewModel extends ViewModel {
 
   private boolean initialized = false;
   private boolean phone;
-  private List<Recipe> recipes;
+  private List<Recipe> recipesCache;
+  private Map<Integer, Observable<StepThumbnail>> thumbnailsCache;
+  private CompositeDisposable disposables;
   private DetailRequest detailRequest;
   private StepRequest stepRequest;
+  private PlayerState playerState;
 
   RecipeViewModel(Application application, Repository repository, SimpleIdlingResource idlingResource) {
     this.application = application;
@@ -51,20 +62,31 @@ public class RecipeViewModel extends ViewModel {
     this.idlingResource = idlingResource;
   }
 
+  @SuppressLint("UseSparseArrays")
   public void init() {
     if (initialized) {
       return;
     }
     initialized = true;
     phone = application.getResources().getConfiguration().smallestScreenWidthDp < 600;
+    thumbnailsCache = new HashMap<>();
+    disposables = new CompositeDisposable();
     emitBrowse();
+  }
+
+  @Override
+  protected void onCleared() {
+    super.onCleared();
+    if (disposables != null) {
+      disposables.dispose();
+    }
   }
 
   /** Stream for browse fragment */
   public Observable<NetworkResource<List<BrowseItem>>> getBrowseStream() {
     return browseSubject
-        .flatMap(browseRequest -> recipes != null ?
-            Observable.just(recipes)
+        .flatMap(browseRequest -> recipesCache != null ?
+            Observable.just(recipesCache)
                 .map(this::toBrowseItems)
                 .map(NetworkResource::success)
             :
@@ -86,12 +108,35 @@ public class RecipeViewModel extends ViewModel {
   public Observable<DetailItem> getDetailStream() {
     return detailSubject
         .doOnNext(request -> detailRequest = request)
-        .map(detailRequest -> getRecipeDetails(detailRequest.getPosition()));
+        .map(detailRequest -> getRecipeDetail(detailRequest.getPosition()))
+        .subscribeOn(Schedulers.io())
+        .observeOn(AndroidSchedulers.mainThread());
   }
 
   /** Trigger detail request */
   public void emitDetail(int position) {
     detailSubject.onNext(new DetailRequest(position));
+  }
+
+  /** Stream of recipe thumbnails */
+  public Observable<StepThumbnail> getStepThumbnailStream() {
+    return detailSubject.map(DetailRequest::getPosition)
+        .flatMap(position -> {
+          if (!thumbnailsCache.containsKey(position)) {
+            Observable<StepThumbnail> thumbnailFetcher = Observable.fromIterable(getRecipeSteps(position))
+                .map(step -> {
+                  Drawable thumbnail = RecipeUtils.buildThumbnail(application, step);
+                  return new StepThumbnail(thumbnail, step.id);
+                })
+                .subscribeOn(Schedulers.io())
+                .replay()
+                .autoConnect();
+            thumbnailsCache.put(position, thumbnailFetcher);
+            disposables.add(thumbnailFetcher.subscribe()); // Prefetch
+          }
+          return thumbnailsCache.get(position);
+        })
+        .observeOn(AndroidSchedulers.mainThread());
   }
 
   /** Stream for detail item selection */
@@ -105,7 +150,7 @@ public class RecipeViewModel extends ViewModel {
   public Observable<StepItem> getStepStream() {
     return stepSubject
         .doOnNext(request -> stepRequest = request)
-        .map(stepRequest -> getStepDetails(stepRequest.getRecipePosition(), stepRequest.getStepPosition()));
+        .map(stepRequest -> getStepDetail(stepRequest.getRecipePosition(), stepRequest.getStepPosition()));
   }
 
   /** Trigger step request */
@@ -130,13 +175,24 @@ public class RecipeViewModel extends ViewModel {
     return detailRequest.getPosition();
   }
 
+  public PlayerState getPlayerState() {
+    return playerState;
+  }
+
+  public void setPlayerState(PlayerState playerState) {
+    this.playerState = playerState;
+  }
+
   private void cacheRecipes(Result<List<Recipe>> listResult) {
     if (listResult.isError()) {
       return;
     }
     Response<List<Recipe>> response = listResult.response();
     if (response != null) {
-      recipes = response.body();
+      List<Recipe> body = response.body();
+      if (body != null) {
+        recipesCache = new ArrayList<>(body);
+      }
     }
   }
 
@@ -150,24 +206,35 @@ public class RecipeViewModel extends ViewModel {
     return browseItems;
   }
 
-  private DetailItem getRecipeDetails(int position) {
-    if (recipes == null) {
+  private DetailItem getRecipeDetail(int position) {
+    if (recipesCache == null) {
       throw new IllegalStateException("Cache is not initialized");
     }
-    Recipe recipe = recipes.get(position);
+    Recipe recipe = recipesCache.get(position);
     if (recipe == null) {
       throw new AssertionError("Cache item " + position + " is null");
     }
     final String ingredients = buildIngredientsSummary(application, recipe.ingredients);
-    final List<String> steps = buildSteps(application, recipe.steps);
-    return new DetailItem(recipe.name, position, ingredients, steps);
+    final List<String> descriptions = buildDescriptions(application, recipe.steps);
+    return new DetailItem(recipe.name, position, ingredients, descriptions);
   }
 
-  private StepItem getStepDetails(int recipePosition, int stepPosition) {
-    if (recipes == null) {
+  private List<Step> getRecipeSteps(int position) {
+    if (recipesCache == null) {
+      throw new IllegalStateException("Cache is not initialized");
+    }
+    Recipe recipe = recipesCache.get(position);
+    if (recipe == null) {
+      throw new AssertionError("Cache item " + position + " is null");
+    }
+    return recipe.steps;
+  }
+
+  private StepItem getStepDetail(int recipePosition, int stepPosition) {
+    if (recipesCache == null) {
       throw new IllegalStateException("View model is not initialized");
     }
-    Recipe recipe = recipes.get(recipePosition);
+    Recipe recipe = recipesCache.get(recipePosition);
     if (recipe == null) {
       throw new AssertionError("Recipe " + recipePosition + " is null");
     }
@@ -177,6 +244,6 @@ public class RecipeViewModel extends ViewModel {
     }
     final boolean first = stepPosition == 0;
     final boolean last = stepPosition == recipe.steps.size() - 1;
-    return new StepItem(recipe.name, step.description, step.videoURL, first, last);
+    return new StepItem(recipe.id, step.id, recipe.name, step.description, step.videoURL, first, last);
   }
 }

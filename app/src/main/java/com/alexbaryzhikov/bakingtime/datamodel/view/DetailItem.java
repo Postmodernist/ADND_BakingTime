@@ -1,7 +1,5 @@
 package com.alexbaryzhikov.bakingtime.datamodel.view;
 
-import android.support.annotation.NonNull;
-
 import java.util.List;
 
 public final class DetailItem {
@@ -9,13 +7,13 @@ public final class DetailItem {
   private final String name;
   private final int position;
   private final String ingredients;
-  private final List<String> steps;
+  private final List<String> descriptions;
 
-  public DetailItem(String name, int position, @NonNull String ingredients, @NonNull List<String> steps) {
+  public DetailItem(String name, int position, String ingredients, List<String> descriptions) {
     this.name = name;
     this.position = position;
     this.ingredients = ingredients;
-    this.steps = steps;
+    this.descriptions = descriptions;
   }
 
   public String getName() {
@@ -30,7 +28,7 @@ public final class DetailItem {
     return ingredients;
   }
 
-  public List<String> getSteps() {
-    return steps;
+  public List<String> getDescriptions() {
+    return descriptions;
   }
 }

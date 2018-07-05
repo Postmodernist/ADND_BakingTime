@@ -1,6 +1,10 @@
 package com.alexbaryzhikov.bakingtime.utils;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.media.MediaMetadataRetriever;
 import android.support.annotation.NonNull;
 
 import com.alexbaryzhikov.bakingtime.R;
@@ -10,26 +14,52 @@ import com.alexbaryzhikov.bakingtime.datamodel.response.Step;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import io.reactivex.plugins.RxJavaPlugins;
 import retrofit2.Response;
 import retrofit2.adapter.rxjava2.Result;
 
+import static android.media.MediaMetadataRetriever.OPTION_CLOSEST;
+
 public final class RecipeUtils {
 
   private RecipeUtils() {  // Utility class
   }
 
-  public static List<String> buildSteps(@NonNull Context context, @NonNull List<Step> stepsSrc) {
-    List<String> steps = new ArrayList<>(stepsSrc.size());
-    steps.add(stepsSrc.get(0).shortDescription);  // do not append index to introduction step
-    for (int i = 1; i < stepsSrc.size(); i++) {
-      String step = context.getString(R.string.step_fmt,
-          i, stepsSrc.get(i).shortDescription);
-      steps.add(step);
+  @NonNull
+  public static Drawable buildThumbnail(@NonNull Context context, @NonNull Step step) {
+    // Get thumbnail URL either from thumbnailURL field, or videoURL field
+    String thumbnailUrl = step.thumbnailURL.isEmpty() ? step.videoURL : step.thumbnailURL;
+    if (thumbnailUrl.isEmpty()) {
+      return context.getResources().getDrawable(R.drawable.thumb_video);
+    } else {
+      Bitmap thumbBmp = getFrameFromVideoUrl(thumbnailUrl);
+      if (thumbBmp == null) {
+        return context.getResources().getDrawable(R.drawable.thumb_video);
+      }
+      return new BitmapDrawable(context.getResources(), thumbBmp);
     }
-    return Collections.unmodifiableList(steps);
+  }
+
+  private static Bitmap getFrameFromVideoUrl(@NonNull String videoUrl) {
+    MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+    mediaMetadataRetriever.setDataSource(videoUrl, new HashMap<>());
+    Bitmap frame = mediaMetadataRetriever.getFrameAtTime(1, OPTION_CLOSEST);
+    mediaMetadataRetriever.release();
+    return frame;
+  }
+
+  public static List<String> buildDescriptions(@NonNull Context context, @NonNull List<Step> steps) {
+    List<String> descriptions = new ArrayList<>(steps.size());
+    descriptions.add(steps.get(0).shortDescription);  // do not append index to introduction step
+    for (int i = 1; i < steps.size(); i++) {
+      String step = context.getString(R.string.step_fmt,
+          i, steps.get(i).shortDescription);
+      descriptions.add(step);
+    }
+    return Collections.unmodifiableList(descriptions);
   }
 
   public static String buildIngredientsSummary(@NonNull Context context, @NonNull List<Ingredient> ingredients) {
@@ -96,10 +126,10 @@ public final class RecipeUtils {
     if (!response.isSuccessful() || body == null) {
       return ERROR_NETWORK_RESOURCE;
     }
-
+    final List<T> bodyCopy = new ArrayList<>(body);
     // Convert and wrap in NetworkResource
-    List<U> ret = transformer.apply(body);
-    return NetworkResource.success(ret);
+    List<U> transformedBody = transformer.apply(bodyCopy);
+    return NetworkResource.success(transformedBody);
   }
 
   /** Strip NetworkResource wrapper */
