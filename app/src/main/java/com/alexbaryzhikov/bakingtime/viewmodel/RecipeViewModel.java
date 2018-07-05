@@ -51,6 +51,7 @@ public class RecipeViewModel extends ViewModel {
   private boolean phone;
   private List<Recipe> recipesCache;
   private Map<Integer, Observable<StepThumbnail>> thumbnailsCache;
+  private StepItem stepItemCache;
   private CompositeDisposable disposables;
   private DetailRequest detailRequest;
   private StepRequest stepRequest;
@@ -150,21 +151,28 @@ public class RecipeViewModel extends ViewModel {
   public Observable<StepItem> getStepStream() {
     return stepSubject
         .doOnNext(request -> stepRequest = request)
-        .map(stepRequest -> getStepDetail(stepRequest.getRecipePosition(), stepRequest.getStepPosition()));
+        .map(stepRequest -> getStepDetail(stepRequest.getRecipePosition(), stepRequest.getStepPosition()))
+        .doOnNext(stepItem -> stepItemCache = stepItem);
   }
 
   /** Trigger step request */
   public void emitStep(int recipePosition, int stepPosition) {
+    stepItemCache = null;
+    playerState = null;
     stepSubject.onNext(new StepRequest(recipePosition, stepPosition));
   }
 
   /** Trigger step request */
   public void emitNextStep() {
+    stepItemCache = null;
+    playerState = null;
     stepSubject.onNext(stepRequest.next());
   }
 
   /** Trigger step request */
   public void emitPrevStep() {
+    stepItemCache = null;
+    playerState = null;
     stepSubject.onNext(stepRequest.prev());
   }
 
@@ -181,6 +189,10 @@ public class RecipeViewModel extends ViewModel {
 
   public void setPlayerState(PlayerState playerState) {
     this.playerState = playerState;
+  }
+
+  public StepItem getStepItemCache() {
+    return stepItemCache;
   }
 
   private void cacheRecipes(Result<List<Recipe>> listResult) {

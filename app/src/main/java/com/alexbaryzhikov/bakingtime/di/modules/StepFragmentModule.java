@@ -32,7 +32,6 @@ public class StepFragmentModule {
   }
 
   @Provides
-  @StepFragmentScope
   SimpleExoPlayer provideSimpleExoPlayer(MainActivity context, TrackSelector trackSelector) {
     return ExoPlayerFactory.newSimpleInstance(context, trackSelector);
   }

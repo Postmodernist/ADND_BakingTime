@@ -51,10 +51,10 @@ public class StepFragment extends Fragment {
 
   private StepFragmentComponent fragmentComponent;
   private SimpleExoPlayer exoPlayer;
-  private StepItem stepItemCache;
   private Disposable disposable;
   private int systemVisibility;
   private boolean uiHidden = false;
+  private boolean playerUnwired = true;
 
   public StepFragment() {
     // Required empty public constructor
@@ -80,8 +80,9 @@ public class StepFragment extends Fragment {
   @Override
   public void onResume() {
     super.onResume();
-    if (exoPlayer == null && stepItemCache != null) {
-      initPlayer(stepItemCache);
+    StepItem stepItem = viewModel.getStepItemCache();
+    if (stepItem != null) {
+      initPlayer(stepItem);
     }
   }
 
@@ -129,7 +130,6 @@ public class StepFragment extends Fragment {
     final boolean fullscreen = phone && orientation == ORIENTATION_LANDSCAPE;
     // Subscribe
     disposable = viewModel.getStepStream()
-        .doOnNext(stepItem -> stepItemCache = stepItem)
         .subscribe(stepItem -> {
           if (fullscreen) {
             setupFullscreenUi(stepItem);
@@ -179,11 +179,12 @@ public class StepFragment extends Fragment {
     if (exoPlayer == null) {
       exoPlayer = fragmentComponent.simpleExoPlayer();
     }
-    // Setup player view and event listener
-    if (playerView.getPlayer() == null) {
+    // Wire up player, player view and player event listener
+    if (playerUnwired) {
       playerEventListener.setPlayerView(playerView);
       exoPlayer.addListener(playerEventListener);
       playerView.setPlayer(exoPlayer);
+      playerUnwired = false;
     }
     // Resolve player state
     PlayerState state = viewModel.getPlayerState();
@@ -218,6 +219,7 @@ public class StepFragment extends Fragment {
     exoPlayer.stop();
     exoPlayer.release();
     exoPlayer = null;
+    playerUnwired = true;
   }
 
   private void hideSystemUi() {
