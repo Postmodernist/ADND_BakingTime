@@ -51,10 +51,10 @@ public class StepFragment extends Fragment {
 
   private StepFragmentComponent fragmentComponent;
   private SimpleExoPlayer exoPlayer;
-  private Disposable disposable;
+  private Disposable uiDisposable;
+  private Disposable playerDisposable;
   private int systemVisibility;
-  private boolean uiHidden = false;
-  private boolean playerUnwired = true;
+  private boolean systemUiHidden = false;
 
   public StepFragment() {
     // Required empty public constructor
@@ -80,10 +80,9 @@ public class StepFragment extends Fragment {
   @Override
   public void onResume() {
     super.onResume();
-    StepItem stepItem = viewModel.getStepItemCache();
-    if (stepItem != null) {
-      initPlayer(stepItem);
-    }
+    // Subscribe player
+    playerDisposable = viewModel.getStepStream()
+        .subscribe(this::initPlayer, throwable -> { throw new RuntimeException(throwable); });
   }
 
   @Override
@@ -101,8 +100,11 @@ public class StepFragment extends Fragment {
   @Override
   public void onDestroyView() {
     super.onDestroyView();
-    if (disposable != null) {
-      disposable.dispose();
+    if (playerDisposable != null) {
+      playerDisposable.dispose();
+    }
+    if (uiDisposable != null) {
+      uiDisposable.dispose();
     }
     restoreSystemUi();
   }
@@ -128,16 +130,10 @@ public class StepFragment extends Fragment {
     boolean phone = mainActivity.getResources().getConfiguration().smallestScreenWidthDp < 600;
     int orientation = mainActivity.getResources().getConfiguration().orientation;
     final boolean fullscreen = phone && orientation == ORIENTATION_LANDSCAPE;
-    // Subscribe
-    disposable = viewModel.getStepStream()
-        .subscribe(stepItem -> {
-          if (fullscreen) {
-            setupFullscreenUi(stepItem);
-          } else {
-            setupDefaultUi(stepItem);
-          }
-          initPlayer(stepItem);
-        });
+    // Subscribe UI
+    uiDisposable = viewModel.getStepStream()
+        .subscribe(fullscreen ? this::setupFullscreenUi : this::setupDefaultUi,
+            throwable -> { throw new RuntimeException(throwable); });
   }
 
   private void setupDefaultUi(@NonNull StepItem stepItem) {
@@ -176,16 +172,11 @@ public class StepFragment extends Fragment {
       return;
     }
     // Get player instance
-    if (exoPlayer == null) {
-      exoPlayer = fragmentComponent.simpleExoPlayer();
-    }
+    exoPlayer = fragmentComponent.simpleExoPlayer();
     // Wire up player, player view and player event listener
-    if (playerUnwired) {
-      playerEventListener.setPlayerView(playerView);
-      exoPlayer.addListener(playerEventListener);
-      playerView.setPlayer(exoPlayer);
-      playerUnwired = false;
-    }
+    playerEventListener.setPlayerView(playerView);
+    exoPlayer.addListener(playerEventListener);
+    playerView.setPlayer(exoPlayer);
     // Resolve player state
     PlayerState state = viewModel.getPlayerState();
     if (state == null || state.getRecipeId() != stepItem.getRecipeId()
@@ -219,11 +210,10 @@ public class StepFragment extends Fragment {
     exoPlayer.stop();
     exoPlayer.release();
     exoPlayer = null;
-    playerUnwired = true;
   }
 
   private void hideSystemUi() {
-    uiHidden = true;
+    systemUiHidden = true;
     ActionBar actionBar = mainActivity.getSupportActionBar();
     if (actionBar != null) {
       actionBar.hide();
@@ -238,7 +228,7 @@ public class StepFragment extends Fragment {
   }
 
   private void restoreSystemUi() {
-    if (!uiHidden) {
+    if (!systemUiHidden) {
       return;
     }
     ActionBar actionBar = mainActivity.getSupportActionBar();
