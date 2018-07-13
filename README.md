@@ -2,7 +2,9 @@
 
 A baking cookbook app. Downloads and displays recipes that include
 ingredients, cooking steps and videos. Supports widgets that display chosen
-recipe ingredients. Used in **Android Developer Nanodegree** program.
+recipe ingredients.
+
+Used in **Android Developer Nanodegree** program.
 
 ![Recipes list](images/baking_screenshot_01.jpg)
 ![Recipe details](images/baking_screenshot_02.jpg)

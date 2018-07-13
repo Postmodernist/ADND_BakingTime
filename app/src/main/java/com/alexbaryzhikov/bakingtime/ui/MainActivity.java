@@ -32,7 +32,6 @@ public class MainActivity extends AppCompatActivity {
       // Set arguments
       Intent intent = getIntent();
       if (intent != null && intent.hasExtra(KEY_RECIPE_ID)) {
-        Log.d("TAG", "onCreate: intent with recipe id received");
         final int recipeId = intent.getIntExtra(KEY_RECIPE_ID, INVALID_RECIPE_ID);
         Bundle args = new Bundle();
         args.putInt(KEY_RECIPE_ID, recipeId);
